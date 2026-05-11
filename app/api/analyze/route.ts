@@ -44,121 +44,54 @@ IMPORTANTE: Responde siempre en español chileno legal.`
       ? `Analiza el siguiente documento legal chileno (PDF adjunto), identifica su tipo y extrae toda la información relevante según el formato JSON requerido.`
       : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno (PDF adjunto), extrayendo toda la información según el formato JSON requerido.`
 
-    // Initialize Gemini client
+    // Initialize Gemini client with retry logic
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-    const generationConfig = {
-      temperature: 0.1,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 16000,
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'OBJECT',
-        properties: {
-          analysisType: { type: 'STRING' },
-          documentType: { type: 'STRING' },
-          summary: { type: 'STRING' },
-          informe: { type: 'STRING' },
-          confidence: { type: 'NUMBER' },
-          extractedData: {
-            type: 'OBJECT',
-            properties: {
-              tipoDocumento: { type: 'STRING' },
-              tipoAnalisis: { type: 'STRING' },
-              fechaDocumento: { type: 'STRING' },
-              partes: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    rol: { type: 'STRING' },
-                    nombre: { type: 'STRING' },
-                    rut: { type: 'STRING' },
-                    domicilio: { type: 'STRING' },
-                  },
-                },
-              },
-              inmueble: {
-                type: 'OBJECT',
-                properties: {
-                  direccion: { type: 'STRING' },
-                  comuna: { type: 'STRING' },
-                  region: { type: 'STRING' },
-                  rolAvaluo: { type: 'STRING' },
-                  deslindes: { type: 'STRING' },
-                  inscripcion: {
-                    type: 'OBJECT',
-                    properties: {
-                      cbr: { type: 'STRING' },
-                      fojas: { type: 'STRING' },
-                      numero: { type: 'STRING' },
-                      ano: { type: 'STRING' },
-                    },
-                  },
-                },
-              },
-              clausulas: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    tipo: { type: 'STRING' },
-                    descripcion: { type: 'STRING' },
-                  },
-                },
-              },
-              montos: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    concepto: { type: 'STRING' },
-                    monto: { type: 'STRING' },
-                    moneda: { type: 'STRING' },
-                  },
-                },
-              },
-              alertas: {
-                type: 'ARRAY',
-                items: {
-                  type: 'OBJECT',
-                  properties: {
-                    tipo: { type: 'STRING' },
-                    mensaje: { type: 'STRING' },
-                  },
-                },
-              },
-              observaciones: {
-                type: 'ARRAY',
-                items: { type: 'STRING' },
-              },
-            },
-          },
-        },
-      },
-    }
-
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: 'user',
-          parts: [
+    let response
+    let lastError: any
+    const maxRetries = 3
+    
+    // Retry logic for handling temporary service unavailability
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        response = await model.generateContent({
+          contents: [
             {
-              text: systemPrompt + '\n\n' + userPrompt,
-            },
-            {
-              inlineData: {
-                mimeType: 'application/pdf',
-                data: base64Data,
-              },
+              role: 'user',
+              parts: [
+                {
+                  text: systemPrompt + '\n\n' + userPrompt,
+                },
+                {
+                  inlineData: {
+                    mimeType: 'application/pdf',
+                    data: base64Data,
+                  },
+                },
+              ],
             },
           ],
-        },
-      ],
-      generationConfig,
-    })
+          generationConfig,
+        })
+        break // Success, exit retry loop
+      } catch (error: any) {
+        lastError = error
+        console.error(`[v0] Attempt ${attempt}/${maxRetries} failed:`, error.message)
+        
+        if (attempt < maxRetries && error.status === 503) {
+          // Wait before retrying (exponential backoff)
+          const waitTime = 1000 * Math.pow(2, attempt - 1)
+          console.log(`[v0] Retrying in ${waitTime}ms...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+        } else if (attempt === maxRetries) {
+          throw error
+        }
+      }
+    }
+    
+    if (!response) {
+      throw lastError || new Error('No response from Gemini')
 
     const responseText = response.response.text()
     
