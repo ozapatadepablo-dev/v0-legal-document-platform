@@ -113,18 +113,24 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
       {extractedData.alertas && extractedData.alertas.length > 0 && (
         <div className="space-y-2">
           {extractedData.alertas.map((alerta, index) => {
+            if (!alerta || !alerta.mensaje) return null
+            
             const alertStyles: Record<string, { bg: string; icon: any; color: string }> = {
               info: { bg: 'bg-primary/10', icon: Info, color: 'text-primary' },
               warning: { bg: 'bg-chart-4/10', icon: AlertCircle, color: 'text-chart-4' },
               error: { bg: 'bg-destructive/10', icon: ShieldAlert, color: 'text-destructive' }
             }
             
-            // Normalizar el tipo de alerta - si no coincide, usar warning como defecto
-            const alertType = (typeof alerta.tipo === 'string' ? alerta.tipo.toLowerCase() : 'warning') || 'warning'
-            const style = alertStyles[alertType] || alertStyles['warning']
+            const alertType = String(alerta.tipo || 'warning').toLowerCase()
+            const style = alertStyles[alertType] || alertStyles.warning
             
-            if (!style) {
-              return null // Fallback if style is still undefined
+            if (!style || !style.icon) {
+              return (
+                <div key={index} className="flex items-start gap-3 rounded-lg p-4 bg-chart-4/10">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-chart-4" />
+                  <p className="text-sm text-foreground">{alerta.mensaje}</p>
+                </div>
+              )
             }
             
             const AlertIcon = style.icon
@@ -132,7 +138,7 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
             return (
               <div key={index} className={cn("flex items-start gap-3 rounded-lg p-4", style.bg)}>
                 <AlertIcon className={cn("mt-0.5 h-5 w-5 shrink-0", style.color)} />
-                <p className="text-sm text-foreground">{alerta.mensaje || alerta}</p>
+                <p className="text-sm text-foreground">{alerta.mensaje}</p>
               </div>
             )
           })}
