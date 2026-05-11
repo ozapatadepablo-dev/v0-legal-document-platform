@@ -1,10 +1,10 @@
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 
-// Disable worker for serverless environment
-GlobalWorkerOptions.workerSrc = ''
+// Use legacy build that doesn't require worker
+// @ts-expect-error - legacy build doesn't have types
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 // Schema flexible para diferentes tipos de análisis
 const extractedDataSchema = z.object({
@@ -191,8 +191,8 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await file.arrayBuffer()
     
-    // Extract text using pdfjs-dist
-    const pdf = await getDocument({ data: arrayBuffer }).promise
+    // Extract text using pdfjs-dist legacy build (no worker needed)
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
     let textContent = ''
     
     for (let i = 1; i <= pdf.numPages; i++) {
