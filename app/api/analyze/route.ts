@@ -44,6 +44,76 @@ IMPORTANTE: Responde siempre en español chileno legal.`
       ? `Analiza el siguiente documento legal chileno (PDF adjunto), identifica su tipo y extrae toda la información relevante según el formato JSON requerido.`
       : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno (PDF adjunto), extrayendo toda la información según el formato JSON requerido.`
 
+    const generationConfig = {
+      temperature: 0.1,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 16000,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          analysisType: { type: 'STRING' },
+          documentType: { type: 'STRING' },
+          summary: { type: 'STRING' },
+          informe: { type: 'STRING' },
+          confidence: { type: 'NUMBER' },
+          extractedData: {
+            type: 'OBJECT',
+            properties: {
+              tipoDocumento: { type: 'STRING' },
+              tipoAnalisis: { type: 'STRING' },
+              partes: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    rol: { type: 'STRING' },
+                    nombre: { type: 'STRING' },
+                    rut: { type: 'STRING' },
+                  },
+                },
+              },
+              clausulas: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    tipo: { type: 'STRING' },
+                    descripcion: { type: 'STRING' },
+                  },
+                },
+              },
+              montos: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    concepto: { type: 'STRING' },
+                    monto: { type: 'STRING' },
+                  },
+                },
+              },
+              alertas: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    tipo: { type: 'STRING' },
+                    mensaje: { type: 'STRING' },
+                  },
+                },
+              },
+              observaciones: {
+                type: 'ARRAY',
+                items: { type: 'STRING' },
+              },
+            },
+          },
+        },
+      },
+    }
+
     // Initialize Gemini client with retry logic
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
@@ -92,6 +162,7 @@ IMPORTANTE: Responde siempre en español chileno legal.`
     
     if (!response) {
       throw lastError || new Error('No response from Gemini')
+    }
 
     const responseText = response.response.text()
     
