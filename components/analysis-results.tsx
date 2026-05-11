@@ -1,799 +1,412 @@
 'use client'
 
-import { 
-  FileText, 
-  Users, 
-  MapPin, 
-  DollarSign, 
-  Clock, 
-  AlertTriangle,
-  Building,
-  Building2,
-  ScrollText,
-  Scale,
-  ChevronDown,
-  Stamp,
-  ShieldAlert,
-  AlertCircle,
-  Info,
-  CheckCircle2
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AnalysisType, LegalAnalysisResult } from '@/lib/types'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { AlertCircle, ChevronDown, Download, Info, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { AnalysisResult } from '@/lib/types'
-import { useState } from 'react'
 
 interface AnalysisResultsProps {
-  result: AnalysisResult
+  result: LegalAnalysisResult
+  onExport: () => void
 }
 
-function CollapsibleSection({ 
-  title, 
-  icon: Icon, 
-  children, 
-  defaultOpen = true,
-  variant = 'default'
-}: { 
-  title: string
-  icon: React.ElementType
-  children: React.ReactNode
-  defaultOpen?: boolean
-  variant?: 'default' | 'primary' | 'warning'
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+export function AnalysisResults({ result, onExport }: AnalysisResultsProps) {
+  const { analysisType, documentType, summary, informe, confidence, extractedData } = result
 
-  const variantStyles = {
-    default: '',
-    primary: 'border-primary/20 bg-primary/5',
-    warning: 'border-chart-4/20 bg-chart-4/5'
+  const getConfidenceColor = (conf: number) => {
+    if (conf >= 0.8) return 'bg-green-500/20 text-green-700 border-green-200'
+    if (conf >= 0.6) return 'bg-yellow-500/20 text-yellow-700 border-yellow-200'
+    return 'bg-red-500/20 text-red-700 border-red-200'
+  }
+
+  const getConfidenceLabel = (conf: number) => {
+    if (conf >= 0.8) return 'Alto'
+    if (conf >= 0.6) return 'Medio'
+    return 'Bajo'
   }
 
   return (
-    <Card className={variantStyles[variant]}>
-      <CardHeader 
-        className="cursor-pointer select-none"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <CardTitle className="flex items-center justify-between text-base">
-          <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4 text-primary" />
-            {title}
-          </div>
-          <ChevronDown className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform",
-            isOpen && "rotate-180"
-          )} />
-        </CardTitle>
-      </CardHeader>
-      {isOpen && <CardContent>{children}</CardContent>}
-    </Card>
-  )
-}
-
-export function AnalysisResults({ result }: AnalysisResultsProps) {
-  const { extractedData, summary, informe, documentType, confidence, analysisType } = result
-
-  return (
     <div className="space-y-6">
-      {/* Header with document type and confidence */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Scale className="h-6 w-6 text-primary" />
-          </div>
+      {/* Header */}
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-1 flex flex-wrap gap-2">
-              <Badge variant="default">
-                {analysisType || documentType}
-              </Badge>
-              <Badge variant="outline">
-                {extractedData.tipoDocumento}
-              </Badge>
-            </div>
-            {extractedData.fechaDocumento && (
-              <p className="text-sm text-muted-foreground">
-                Fecha: {extractedData.fechaDocumento}
-              </p>
-            )}
+            <h2 className="text-2xl font-bold text-foreground">Análisis Completado</h2>
+            <p className="text-sm text-muted-foreground">
+              {documentType} • {new Date().toLocaleDateString('es-CL')}
+            </p>
           </div>
+          <Button onClick={onExport} variant="outline" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">Confianza del análisis</p>
-          <p className={cn(
-            "text-2xl font-bold",
-            confidence >= 0.8 ? "text-accent" : confidence >= 0.5 ? "text-chart-4" : "text-destructive"
-          )}>
-            {Math.round(confidence * 100)}%
-          </p>
+
+        {/* Metadata */}
+        <div className="flex flex-wrap gap-3">
+          <Badge variant="secondary">Tipo: {documentType}</Badge>
+          <Badge variant="secondary">Análisis: {analysisType}</Badge>
+          <div
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-medium border',
+              getConfidenceColor(confidence)
+            )}
+          >
+            Confianza: {getConfidenceLabel(confidence)} ({Math.round(confidence * 100)}%)
+          </div>
         </div>
       </div>
 
-      {/* Alerts Section */}
-      {extractedData.alertas && extractedData.alertas.length > 0 && (
-        <div className="space-y-2">
-          {extractedData.alertas.map((alerta, index) => {
-            if (!alerta || !alerta.mensaje) return null
-            
-            const alertStyles: Record<string, { bg: string; icon: any; color: string }> = {
-              info: { bg: 'bg-primary/10', icon: Info, color: 'text-primary' },
-              warning: { bg: 'bg-chart-4/10', icon: AlertCircle, color: 'text-chart-4' },
-              error: { bg: 'bg-destructive/10', icon: ShieldAlert, color: 'text-destructive' }
-            }
-            
-            const alertType = String(alerta.tipo || 'warning').toLowerCase()
-            const style = alertStyles[alertType] || alertStyles.warning
-            
-            if (!style || !style.icon) {
-              return (
-                <div key={index} className="flex items-start gap-3 rounded-lg p-4 bg-chart-4/10">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-chart-4" />
-                  <p className="text-sm text-foreground">{alerta.mensaje}</p>
-                </div>
-              )
-            }
-            
-            const AlertIcon = style.icon
-            
-            return (
-              <div key={index} className={cn("flex items-start gap-3 rounded-lg p-4", style.bg)}>
-                <AlertIcon className={cn("mt-0.5 h-5 w-5 shrink-0", style.color)} />
-                <p className="text-sm text-foreground">{alerta.mensaje}</p>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {/* Summary */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4 text-primary" />
-            Resumen Ejecutivo
-          </CardTitle>
+          <CardTitle className="text-lg">Resumen Ejecutivo</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="whitespace-pre-wrap leading-relaxed text-foreground">{summary}</p>
+          <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">{summary}</p>
         </CardContent>
       </Card>
 
       {/* Full Report */}
-      {informe && (
-        <CollapsibleSection title="Informe Completo" icon={ScrollText} defaultOpen={true} variant="primary">
-          <div className="prose prose-sm max-w-none">
-            <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 font-sans text-sm leading-relaxed text-foreground">
-              {informe}
-            </pre>
-          </div>
-        </CollapsibleSection>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Informe Completo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">{informe}</p>
+        </CardContent>
+      </Card>
 
-      {/* Literal Transcription (for dominio_vigente) */}
-      {extractedData.transcripcionLiteral && (
-        <CollapsibleSection title="Transcripción Literal" icon={FileText} defaultOpen={false}>
-          <div className="rounded-lg bg-muted/50 p-4">
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-              {extractedData.transcripcionLiteral}
-            </pre>
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Form of Acquisition */}
-      {extractedData.formaAdquisicion && (
-        <CollapsibleSection title="Forma de Adquisición" icon={ScrollText}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {extractedData.formaAdquisicion.tipo && (
-              <div>
-                <p className="text-sm text-muted-foreground">Tipo</p>
-                <p className="font-medium text-foreground">{extractedData.formaAdquisicion.tipo}</p>
-              </div>
-            )}
-            {extractedData.formaAdquisicion.escritura && (
-              <div>
-                <p className="text-sm text-muted-foreground">Escritura</p>
-                <p className="text-foreground">{extractedData.formaAdquisicion.escritura}</p>
-              </div>
-            )}
-            {extractedData.formaAdquisicion.notaria && (
-              <div>
-                <p className="text-sm text-muted-foreground">Notaría</p>
-                <p className="text-foreground">{extractedData.formaAdquisicion.notaria}</p>
-              </div>
-            )}
-            {extractedData.formaAdquisicion.fecha && (
-              <div>
-                <p className="text-sm text-muted-foreground">Fecha</p>
-                <p className="text-foreground">{extractedData.formaAdquisicion.fecha}</p>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Notary */}
-      {extractedData.notaria && (
-        <CollapsibleSection title="Notaría" icon={Building}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Notario</p>
-              <p className="font-medium text-foreground">{extractedData.notaria.nombre}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Ciudad</p>
-              <p className="font-medium text-foreground">{extractedData.notaria.ciudad}</p>
-            </div>
-            {extractedData.notaria.repertorio && (
-              <div>
-                <p className="text-sm text-muted-foreground">Repertorio</p>
-                <p className="font-mono text-foreground">{extractedData.notaria.repertorio}</p>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Parties */}
-      {extractedData.partes && extractedData.partes.length > 0 && (
-        <CollapsibleSection title="Partes Involucradas" icon={Users}>
-          <div className="space-y-4">
-            {extractedData.partes.map((parte, index) => (
-              <div 
-                key={index} 
-                className="rounded-lg border border-border bg-muted/30 p-4"
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <Badge variant="secondary" className="capitalize">
-                    {parte.rol}
-                  </Badge>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Nombre</p>
-                    <p className="font-medium text-foreground">{parte.nombre}</p>
-                  </div>
-                  {parte.rut && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">RUT</p>
-                      <p className="font-mono text-foreground">{parte.rut}</p>
-                    </div>
-                  )}
-                  {parte.estadoCivil && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Estado Civil</p>
-                      <p className="text-foreground">{parte.estadoCivil}</p>
-                    </div>
-                  )}
-                  {parte.representante && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Representante</p>
-                      <p className="text-foreground">{parte.representante}</p>
-                    </div>
-                  )}
-                  {parte.domicilio && (
-                    <div className="sm:col-span-2">
-                      <p className="text-sm text-muted-foreground">Domicilio</p>
-                      <p className="text-foreground">{parte.domicilio}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Society Information */}
-      {extractedData.sociedad && (
-        <CollapsibleSection title="Información Societaria" icon={Building2}>
-          <div className="space-y-6">
-            {/* Basic Info */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              {extractedData.sociedad.razonSocial && (
-                <div className="sm:col-span-2">
-                  <p className="text-sm text-muted-foreground">Razón Social</p>
-                  <p className="font-medium text-foreground">{extractedData.sociedad.razonSocial}</p>
-                </div>
-              )}
-              {extractedData.sociedad.rut && (
-                <div>
-                  <p className="text-sm text-muted-foreground">RUT</p>
-                  <p className="font-mono text-foreground">{extractedData.sociedad.rut}</p>
-                </div>
-              )}
-              {extractedData.sociedad.tipoSociedad && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Tipo de Sociedad</p>
-                  <Badge variant="outline">{extractedData.sociedad.tipoSociedad}</Badge>
-                </div>
-              )}
-            </div>
-
-            {/* Constitution */}
-            {extractedData.sociedad.constitucion && (
-              <div className="rounded-lg border border-border p-4">
-                <p className="mb-3 text-sm font-medium text-primary">Constitución</p>
-                <div className="grid gap-2 text-sm sm:grid-cols-3">
-                  {extractedData.sociedad.constitucion.fecha && (
-                    <div>
-                      <p className="text-muted-foreground">Fecha</p>
-                      <p className="text-foreground">{extractedData.sociedad.constitucion.fecha}</p>
-                    </div>
-                  )}
-                  {extractedData.sociedad.constitucion.notaria && (
-                    <div>
-                      <p className="text-muted-foreground">Notaría</p>
-                      <p className="text-foreground">{extractedData.sociedad.constitucion.notaria}</p>
-                    </div>
-                  )}
-                  {extractedData.sociedad.constitucion.repertorio && (
-                    <div>
-                      <p className="text-muted-foreground">Repertorio</p>
-                      <p className="font-mono text-foreground">{extractedData.sociedad.constitucion.repertorio}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Publication */}
-            {extractedData.sociedad.publicacion && (
-              <div className="rounded-lg border border-border p-4">
-                <p className="mb-3 text-sm font-medium text-primary">Publicación Diario Oficial</p>
-                <div className="grid gap-2 text-sm sm:grid-cols-2">
-                  {extractedData.sociedad.publicacion.diarioOficial && (
-                    <div>
-                      <p className="text-muted-foreground">Número</p>
-                      <p className="text-foreground">{extractedData.sociedad.publicacion.diarioOficial}</p>
-                    </div>
-                  )}
-                  {extractedData.sociedad.publicacion.fecha && (
-                    <div>
-                      <p className="text-muted-foreground">Fecha</p>
-                      <p className="text-foreground">{extractedData.sociedad.publicacion.fecha}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Commercial Registry */}
-            {extractedData.sociedad.inscripcionComercio && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <p className="mb-3 text-sm font-medium text-primary">Inscripción Registro de Comercio</p>
-                <div className="grid gap-2 text-sm sm:grid-cols-4">
-                  {extractedData.sociedad.inscripcionComercio.cbr && (
-                    <div>
-                      <p className="text-muted-foreground">CBR</p>
-                      <p className="text-foreground">{extractedData.sociedad.inscripcionComercio.cbr}</p>
-                    </div>
-                  )}
-                  {extractedData.sociedad.inscripcionComercio.fojas && (
-                    <div>
-                      <p className="text-muted-foreground">Fojas</p>
-                      <p className="font-mono text-foreground">{extractedData.sociedad.inscripcionComercio.fojas}</p>
-                    </div>
-                  )}
-                  {extractedData.sociedad.inscripcionComercio.numero && (
-                    <div>
-                      <p className="text-muted-foreground">Número</p>
-                      <p className="font-mono text-foreground">{extractedData.sociedad.inscripcionComercio.numero}</p>
-                    </div>
-                  )}
-                  {extractedData.sociedad.inscripcionComercio.ano && (
-                    <div>
-                      <p className="text-muted-foreground">Año</p>
-                      <p className="font-mono text-foreground">{extractedData.sociedad.inscripcionComercio.ano}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Vigency */}
-            {extractedData.sociedad.vigencia && (
-              <div className="flex items-center gap-3 rounded-lg bg-accent/10 p-4">
-                <CheckCircle2 className="h-5 w-5 text-accent" />
-                <div>
-                  <p className="font-medium text-foreground">
-                    {extractedData.sociedad.vigencia.estado || 'Vigente'}
-                  </p>
-                  {extractedData.sociedad.vigencia.certificadoFecha && (
-                    <p className="text-sm text-muted-foreground">
-                      Certificado de fecha: {extractedData.sociedad.vigencia.certificadoFecha}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Modifications */}
-            {extractedData.sociedad.modificaciones && extractedData.sociedad.modificaciones.length > 0 && (
-              <div>
-                <p className="mb-3 text-sm font-medium text-foreground">Modificaciones</p>
-                <div className="space-y-2">
-                  {extractedData.sociedad.modificaciones.map((mod, idx) => (
-                    <div key={idx} className="rounded-lg border border-border p-3 text-sm">
-                      <div className="flex flex-wrap gap-4">
-                        {mod.fecha && <span className="text-muted-foreground">Fecha: {mod.fecha}</span>}
-                        {mod.notaria && <span className="text-muted-foreground">Notaría: {mod.notaria}</span>}
+      {/* Extracted Data */}
+      {extractedData && (
+        <div className="space-y-4">
+          {/* Document Type and Date */}
+          {(extractedData.tipoDocumento || extractedData.fechaDocumento) && (
+            <Collapsible defaultOpen>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Información del Documento</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
                       </div>
-                      {mod.descripcion && <p className="mt-1 text-foreground">{mod.descripcion}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Attorneys */}
-            {extractedData.sociedad.apoderados && extractedData.sociedad.apoderados.length > 0 && (
-              <div>
-                <p className="mb-3 text-sm font-medium text-foreground">Apoderados</p>
-                <div className="space-y-2">
-                  {extractedData.sociedad.apoderados.map((apod, idx) => (
-                    <div key={idx} className="rounded-lg border border-border p-3">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{apod.nombre}</p>
-                        {apod.clase && <Badge variant="outline" className="text-xs">{apod.clase}</Badge>}
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 border-t pt-4">
+                    {extractedData.tipoDocumento && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Tipo de Documento</p>
+                        <p className="text-sm text-foreground">{extractedData.tipoDocumento}</p>
                       </div>
-                      {apod.facultades && apod.facultades.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {apod.facultades.map((fac, fidx) => (
-                            <Badge key={fidx} variant="secondary" className="text-xs">{fac}</Badge>
-                          ))}
+                    )}
+                    {extractedData.fechaDocumento && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Fecha</p>
+                        <p className="text-sm text-foreground">{extractedData.fechaDocumento}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Notary Information */}
+          {extractedData.notaria && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Información de Notaría</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 border-t pt-4">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Notario</p>
+                      <p className="text-sm text-foreground">{extractedData.notaria.nombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Ciudad</p>
+                      <p className="text-sm text-foreground">{extractedData.notaria.ciudad}</p>
+                    </div>
+                    {extractedData.notaria.repertorio && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Repertorio</p>
+                        <p className="text-sm text-foreground">{extractedData.notaria.repertorio}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Parties */}
+          {extractedData.partes && extractedData.partes.length > 0 && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Partes Involucradas</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 border-t pt-4">
+                    {extractedData.partes.map((parte, idx) => (
+                      <div key={idx} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
+                        <p className="text-xs font-semibold text-primary uppercase">{parte.rol}</p>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Nombre</p>
+                          <p className="text-sm text-foreground">{parte.nombre}</p>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* How to act */}
-            {extractedData.sociedad.formaActuar && (
-              <div className="rounded-lg bg-muted/50 p-4">
-                <p className="text-sm font-medium text-foreground">Forma de Actuar</p>
-                <p className="mt-1 text-sm text-muted-foreground">{extractedData.sociedad.formaActuar}</p>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Power of Attorney */}
-      {extractedData.poder && (
-        <CollapsibleSection title="Análisis del Poder" icon={Stamp}>
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {extractedData.poder.mandante && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Mandante</p>
-                  <p className="font-medium text-foreground">{extractedData.poder.mandante}</p>
-                </div>
-              )}
-              {extractedData.poder.mandatario && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Mandatario</p>
-                  <p className="font-medium text-foreground">{extractedData.poder.mandatario}</p>
-                </div>
-              )}
-              {extractedData.poder.fechaOtorgamiento && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Fecha Otorgamiento</p>
-                  <p className="text-foreground">{extractedData.poder.fechaOtorgamiento}</p>
-                </div>
-              )}
-              {extractedData.poder.vigencia && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Vigencia</p>
-                  <Badge variant={extractedData.poder.vigencia.includes('Vigente') ? 'default' : 'destructive'}>
-                    {extractedData.poder.vigencia}
-                  </Badge>
-                </div>
-              )}
-            </div>
-
-            {/* Faculties */}
-            {extractedData.poder.facultades && extractedData.poder.facultades.length > 0 && (
-              <div>
-                <p className="mb-3 text-sm font-medium text-foreground">Facultades</p>
-                <div className="space-y-2">
-                  {extractedData.poder.facultades.map((fac, idx) => (
-                    <div key={idx} className="flex items-center justify-between rounded-lg border border-border p-3">
-                      <span className="text-foreground">{fac.nombre}</span>
-                      <div className="flex items-center gap-2">
-                        {fac.presente ? (
-                          <Badge variant="default" className="bg-accent">Presente</Badge>
-                        ) : (
-                          <Badge variant="destructive">Ausente</Badge>
+                        {parte.rut && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">RUT</p>
+                            <p className="text-sm text-foreground">{parte.rut}</p>
+                          </div>
                         )}
-                        {fac.observacion && (
-                          <span className="text-xs text-muted-foreground">{fac.observacion}</span>
+                        {parte.domicilio && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Domicilio</p>
+                            <p className="text-sm text-foreground">{parte.domicilio}</p>
+                          </div>
+                        )}
+                        {parte.estadoCivil && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Estado Civil</p>
+                            <p className="text-sm text-foreground">{parte.estadoCivil}</p>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                    ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
 
-            {/* Restrictions */}
-            {extractedData.poder.restricciones && extractedData.poder.restricciones.length > 0 && (
-              <div className="rounded-lg bg-chart-4/10 p-4">
-                <p className="mb-2 text-sm font-medium text-chart-4">Restricciones</p>
-                <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
-                  {extractedData.poder.restricciones.map((rest, idx) => (
-                    <li key={idx}>{rest}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
+          {/* Real Estate */}
+          {extractedData.inmueble && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Información del Inmueble</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 border-t pt-4">
+                    {extractedData.inmueble.direccion && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Dirección</p>
+                        <p className="text-sm text-foreground">{extractedData.inmueble.direccion}</p>
+                      </div>
+                    )}
+                    {extractedData.inmueble.comuna && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Comuna</p>
+                        <p className="text-sm text-foreground">{extractedData.inmueble.comuna}</p>
+                      </div>
+                    )}
+                    {extractedData.inmueble.region && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Región</p>
+                        <p className="text-sm text-foreground">{extractedData.inmueble.region}</p>
+                      </div>
+                    )}
+                    {extractedData.inmueble.rolAvaluo && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Rol de Avalúo</p>
+                        <p className="text-sm text-foreground">{extractedData.inmueble.rolAvaluo}</p>
+                      </div>
+                    )}
+                    {extractedData.inmueble.deslindes && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Deslindes</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{extractedData.inmueble.deslindes}</p>
+                      </div>
+                    )}
+                    {extractedData.inmueble.inscripcion && (
+                      <div className="border-t pt-3 mt-3">
+                        <p className="text-xs font-semibold text-primary mb-2">Inscripción CBR</p>
+                        {extractedData.inmueble.inscripcion.cbr && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">CBR</p>
+                            <p className="text-sm text-foreground">{extractedData.inmueble.inscripcion.cbr}</p>
+                          </div>
+                        )}
+                        {extractedData.inmueble.inscripcion.fojas && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Fojas</p>
+                            <p className="text-sm text-foreground">{extractedData.inmueble.inscripcion.fojas}</p>
+                          </div>
+                        )}
+                        {extractedData.inmueble.inscripcion.numero && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Número</p>
+                            <p className="text-sm text-foreground">{extractedData.inmueble.inscripcion.numero}</p>
+                          </div>
+                        )}
+                        {extractedData.inmueble.inscripcion.ano && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Año</p>
+                            <p className="text-sm text-foreground">{extractedData.inmueble.inscripcion.ano}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
 
-      {/* Property */}
-      {extractedData.inmueble && (
-        <CollapsibleSection title="Información del Inmueble" icon={MapPin}>
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {extractedData.inmueble.direccion && (
-                <div className="sm:col-span-2">
-                  <p className="text-sm text-muted-foreground">Dirección</p>
-                  <p className="font-medium text-foreground">{extractedData.inmueble.direccion}</p>
-                </div>
-              )}
-              {extractedData.inmueble.comuna && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Comuna</p>
-                  <p className="text-foreground">{extractedData.inmueble.comuna}</p>
-                </div>
-              )}
-              {extractedData.inmueble.region && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Región</p>
-                  <p className="text-foreground">{extractedData.inmueble.region}</p>
-                </div>
-              )}
-              {extractedData.inmueble.rolAvaluo && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Rol de Avalúo</p>
-                  <p className="font-mono text-foreground">{extractedData.inmueble.rolAvaluo}</p>
-                </div>
-              )}
-              {extractedData.inmueble.superficie && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Superficie</p>
-                  <p className="text-foreground">{extractedData.inmueble.superficie}</p>
-                </div>
-              )}
+          {/* Clauses */}
+          {extractedData.clausulas && extractedData.clausulas.length > 0 && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Cláusulas Principales</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 border-t pt-4">
+                    {extractedData.clausulas.map((clausula, idx) => (
+                      <div key={idx} className="pb-3 border-b last:border-0 last:pb-0">
+                        <p className="text-xs font-semibold text-primary">{clausula.tipo}</p>
+                        <p className="text-sm text-foreground mt-1">{clausula.descripcion}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Amounts */}
+          {extractedData.montos && extractedData.montos.length > 0 && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Montos y Valores</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 border-t pt-4">
+                    {extractedData.montos.map((monto, idx) => (
+                      <div key={idx} className="pb-3 border-b last:border-0 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground">{monto.concepto}</p>
+                            {monto.formaPago && (
+                              <p className="text-xs text-muted-foreground mt-1">Forma: {monto.formaPago}</p>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">
+                            {monto.monto} {monto.moneda}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Alerts */}
+          {extractedData.alertas && extractedData.alertas.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Alertas y Observaciones</h3>
+              {extractedData.alertas.map((alerta, idx) => {
+                let bgColor = 'bg-chart-4/10'
+                let iconComponent = AlertCircle
+                let iconColor = 'text-chart-4'
+
+                const tipoStr = String(alerta.tipo || 'warning').toLowerCase()
+                if (tipoStr === 'error') {
+                  bgColor = 'bg-destructive/10'
+                  iconComponent = ShieldAlert
+                  iconColor = 'text-destructive'
+                } else if (tipoStr === 'info') {
+                  bgColor = 'bg-primary/10'
+                  iconComponent = Info
+                  iconColor = 'text-primary'
+                }
+
+                const AlertIcon = iconComponent
+
+                return (
+                  <div key={idx} className={cn('flex items-start gap-3 rounded-lg p-4', bgColor)}>
+                    <AlertIcon className={cn('mt-0.5 h-5 w-5 shrink-0', iconColor)} />
+                    <p className="text-sm text-foreground">{String(alerta.mensaje || alerta)}</p>
+                  </div>
+                )
+              })}
             </div>
+          )}
 
-            {extractedData.inmueble.deslindes && (
-              <div>
-                <p className="text-sm text-muted-foreground">Deslindes</p>
-                <p className="text-sm text-foreground">{extractedData.inmueble.deslindes}</p>
-              </div>
-            )}
-
-            {extractedData.inmueble.inscripcion && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                <p className="mb-2 text-sm font-medium text-primary">Inscripción CBR</p>
-                <div className="grid gap-2 text-sm sm:grid-cols-4">
-                  <div>
-                    <p className="text-muted-foreground">CBR</p>
-                    <p className="font-medium text-foreground">{extractedData.inmueble.inscripcion.cbr}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Fojas</p>
-                    <p className="font-mono text-foreground">{extractedData.inmueble.inscripcion.fojas}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Número</p>
-                    <p className="font-mono text-foreground">{extractedData.inmueble.inscripcion.numero}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Año</p>
-                    <p className="font-mono text-foreground">{extractedData.inmueble.inscripcion.ano}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Liens/Encumbrances */}
-      {extractedData.gravamenes && extractedData.gravamenes.length > 0 && (
-        <CollapsibleSection title="Gravámenes" icon={ShieldAlert} variant="warning">
-          <div className="space-y-3">
-            {extractedData.gravamenes.map((grav, index) => (
-              <div key={index} className="rounded-lg border border-chart-4/20 bg-chart-4/5 p-4">
-                <Badge variant="outline" className="mb-2 border-chart-4/30 text-chart-4">
-                  {grav.tipo}
-                </Badge>
-                <p className="text-sm text-foreground">{grav.descripcion}</p>
-                {grav.beneficiario && (
-                  <p className="mt-1 text-xs text-muted-foreground">Beneficiario: {grav.beneficiario}</p>
-                )}
-                {grav.inscripcion && (
-                  <p className="text-xs text-muted-foreground">Inscripción: {grav.inscripcion}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Expropriation */}
-      {extractedData.expropiabilidad && (
-        <CollapsibleSection title="Expropiabilidad" icon={AlertTriangle}>
-          <div className="space-y-3">
-            {extractedData.expropiabilidad.serviu && (
-              <div className={cn(
-                "rounded-lg p-4",
-                extractedData.expropiabilidad.serviu.afecta ? "bg-destructive/10" : "bg-accent/10"
-              )}>
-                <p className="text-sm font-medium text-foreground">SERVIU</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedData.expropiabilidad.serviu.afecta ? 'AFECTA a expropiación' : 'NO afecta a expropiación'}
-                </p>
-                {extractedData.expropiabilidad.serviu.fecha && (
-                  <p className="text-xs text-muted-foreground">Certificado: {extractedData.expropiabilidad.serviu.fecha}</p>
-                )}
-              </div>
-            )}
-            {extractedData.expropiabilidad.dom && (
-              <div className={cn(
-                "rounded-lg p-4",
-                extractedData.expropiabilidad.dom.afecta ? "bg-destructive/10" : "bg-accent/10"
-              )}>
-                <p className="text-sm font-medium text-foreground">Dirección de Obras Municipales</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedData.expropiabilidad.dom.afecta ? 'AFECTA a expropiación' : 'NO afecta a expropiación'}
-                </p>
-                {extractedData.expropiabilidad.dom.fecha && (
-                  <p className="text-xs text-muted-foreground">Certificado: {extractedData.expropiabilidad.dom.fecha}</p>
-                )}
-              </div>
-            )}
-            {extractedData.expropiabilidad.vialidad && (
-              <div className={cn(
-                "rounded-lg p-4",
-                extractedData.expropiabilidad.vialidad.afecta ? "bg-destructive/10" : "bg-accent/10"
-              )}>
-                <p className="text-sm font-medium text-foreground">Dirección de Vialidad</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedData.expropiabilidad.vialidad.afecta ? 'AFECTA a expropiación' : 'NO afecta a expropiación'}
-                </p>
-                {extractedData.expropiabilidad.vialidad.fecha && (
-                  <p className="text-xs text-muted-foreground">Certificado: {extractedData.expropiabilidad.vialidad.fecha}</p>
-                )}
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Property Tax */}
-      {extractedData.contribuciones && (
-        <CollapsibleSection title="Impuesto Territorial" icon={DollarSign}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {extractedData.contribuciones.rol && (
-              <div>
-                <p className="text-sm text-muted-foreground">Rol</p>
-                <p className="font-mono text-foreground">{extractedData.contribuciones.rol}</p>
-              </div>
-            )}
-            {extractedData.contribuciones.comuna && (
-              <div>
-                <p className="text-sm text-muted-foreground">Comuna</p>
-                <p className="text-foreground">{extractedData.contribuciones.comuna}</p>
-              </div>
-            )}
-            {extractedData.contribuciones.deuda !== undefined && (
-              <div className={cn(
-                "rounded-lg p-3",
-                extractedData.contribuciones.deuda ? "bg-destructive/10" : "bg-accent/10"
-              )}>
-                <p className="text-sm font-medium text-foreground">Estado de Deuda</p>
-                <p className={cn(
-                  "text-sm",
-                  extractedData.contribuciones.deuda ? "text-destructive" : "text-accent"
-                )}>
-                  {extractedData.contribuciones.deuda ? 'CON cuotas morosas' : 'SIN cuotas morosas'}
-                </p>
-              </div>
-            )}
-            {extractedData.contribuciones.exento !== undefined && (
-              <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-sm font-medium text-foreground">Exención</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedData.contribuciones.exento ? 'EXENTO de pago' : 'AFECTO a pago'}
-                </p>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Clauses */}
-      {extractedData.clausulas && extractedData.clausulas.length > 0 && (
-        <CollapsibleSection title="Cláusulas Principales" icon={ScrollText}>
-          <div className="space-y-3">
-            {extractedData.clausulas.map((clausula, index) => (
-              <div key={index} className="rounded-lg border border-border p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  {clausula.numero && (
-                    <Badge variant="outline" className="text-xs">{clausula.numero}</Badge>
-                  )}
-                  <Badge variant="secondary" className="capitalize">
-                    {clausula.tipo}
-                  </Badge>
-                </div>
-                <p className="text-sm text-foreground">{clausula.descripcion}</p>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Amounts */}
-      {extractedData.montos && extractedData.montos.length > 0 && (
-        <CollapsibleSection title="Montos" icon={DollarSign}>
-          <div className="divide-y divide-border">
-            {extractedData.montos.map((monto, index) => (
-              <div key={index} className="py-3 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{monto.concepto}</span>
-                  <span className="font-semibold text-foreground">
-                    {monto.moneda} {monto.monto}
-                  </span>
-                </div>
-                {monto.formaPago && (
-                  <p className="mt-1 text-xs text-muted-foreground">Forma de pago: {monto.formaPago}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Deadlines */}
-      {extractedData.plazos && extractedData.plazos.length > 0 && (
-        <CollapsibleSection title="Plazos" icon={Clock}>
-          <div className="space-y-3">
-            {extractedData.plazos.map((plazo, index) => (
-              <div key={index} className="flex items-start gap-3 rounded-lg border border-border p-4">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <div>
-                  <p className="text-foreground">{plazo.descripcion}</p>
-                  {plazo.fecha && (
-                    <p className="mt-1 text-sm font-medium text-primary">{plazo.fecha}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Observations */}
-      {extractedData.observaciones && extractedData.observaciones.length > 0 && (
-        <CollapsibleSection title="Observaciones" icon={Info} defaultOpen={true}>
-          <div className="space-y-2">
-            {extractedData.observaciones.map((obs, index) => (
-              <div 
-                key={index} 
-                className="flex items-start gap-3 rounded-lg bg-muted/50 p-3"
-              >
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <p className="text-sm text-foreground">{obs}</p>
-              </div>
-            ))}
-          </div>
-        </CollapsibleSection>
+          {/* Observations */}
+          {extractedData.observaciones && extractedData.observaciones.length > 0 && (
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full">
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Observaciones</CardTitle>
+                        <ChevronDown className="h-4 w-4" />
+                      </div>
+                    </CardHeader>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3 border-t pt-4">
+                    {extractedData.observaciones.map((obs, idx) => (
+                      <div key={idx} className="pb-3 border-b last:border-0 last:pb-0">
+                        <p className="text-sm text-foreground">{obs}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          )}
+        </div>
       )}
     </div>
   )
