@@ -113,12 +113,15 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
       {extractedData.alertas && extractedData.alertas.length > 0 && (
         <div className="space-y-2">
           {extractedData.alertas.map((alerta, index) => {
-            const alertStyles = {
+            const alertStyles: Record<string, { bg: string; icon: any; color: string }> = {
               info: { bg: 'bg-primary/10', icon: Info, color: 'text-primary' },
               warning: { bg: 'bg-chart-4/10', icon: AlertCircle, color: 'text-chart-4' },
               error: { bg: 'bg-destructive/10', icon: ShieldAlert, color: 'text-destructive' }
             }
-            const style = alertStyles[alerta.tipo]
+            
+            // Normalizar el tipo de alerta - si no coincide, usar warning como defecto
+            const alertType = alerta.tipo?.toLowerCase() || 'warning'
+            const style = alertStyles[alertType] || alertStyles.warning
             const AlertIcon = style.icon
             
             return (
