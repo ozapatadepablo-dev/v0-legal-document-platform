@@ -24,8 +24,8 @@ export function UploadZone({ onFileSelect, isProcessing, currentFile, onClear }:
       return false
     }
     
-    if (file.size > 20 * 1024 * 1024) {
-      setError('El archivo no puede superar los 20MB')
+    if (file.size > 100 * 1024 * 1024) {
+      setError('El archivo no puede superar los 100MB')
       return false
     }
     
@@ -144,7 +144,7 @@ export function UploadZone({ onFileSelect, isProcessing, currentFile, onClear }:
           </div>
           
           <p className="text-xs text-muted-foreground">
-            PDF hasta 20MB
+            PDF hasta 100MB
           </p>
         </div>
       </div>
