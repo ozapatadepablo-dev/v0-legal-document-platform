@@ -1,69 +1,185 @@
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
+import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
 
+// Schema flexible para diferentes tipos de análisis
 const extractedDataSchema = z.object({
-  tipoDocumento: z.string().describe('Tipo de documento legal (inscripción de dominio, compraventa, mandato, hipoteca, etc.)'),
-  fechaDocumento: z.string().nullable().describe('Fecha del documento en formato DD/MM/YYYY'),
+  tipoDocumento: z.string().describe('Tipo de documento legal identificado'),
+  tipoAnalisis: z.string().describe('Tipo de análisis realizado'),
+  fechaDocumento: z.string().nullable().describe('Fecha del documento'),
+  
+  // Información de notaría/CBR
   notaria: z.object({
     nombre: z.string().describe('Nombre del notario'),
     ciudad: z.string().describe('Ciudad de la notaría'),
-  }).nullable().describe('Información de la notaría'),
+    repertorio: z.string().nullable().describe('Número de repertorio'),
+  }).nullable(),
+  
+  // Partes involucradas
   partes: z.array(z.object({
-    rol: z.string().describe('Rol de la parte (vendedor, comprador, mandante, mandatario, acreedor, deudor, etc.)'),
-    nombre: z.string().describe('Nombre completo de la persona o razón social'),
-    rut: z.string().nullable().describe('RUT de la persona o empresa'),
-    domicilio: z.string().nullable().describe('Domicilio declarado'),
-  })).describe('Partes involucradas en el documento'),
+    rol: z.string().describe('Rol de la parte'),
+    nombre: z.string().describe('Nombre completo o razón social'),
+    rut: z.string().nullable().describe('RUT'),
+    domicilio: z.string().nullable().describe('Domicilio'),
+    estadoCivil: z.string().nullable().describe('Estado civil si aplica'),
+    representante: z.string().nullable().describe('Representante legal si es sociedad'),
+  })),
+  
+  // Información del inmueble
   inmueble: z.object({
-    direccion: z.string().nullable().describe('Dirección del inmueble'),
-    comuna: z.string().nullable().describe('Comuna'),
-    region: z.string().nullable().describe('Región'),
-    rolAvaluo: z.string().nullable().describe('Rol de avalúo del SII'),
-    deslindes: z.string().nullable().describe('Descripción de los deslindes'),
-    superficie: z.string().nullable().describe('Superficie del inmueble'),
+    direccion: z.string().nullable(),
+    comuna: z.string().nullable(),
+    region: z.string().nullable(),
+    rolAvaluo: z.string().nullable(),
+    deslindes: z.string().nullable(),
+    superficie: z.string().nullable(),
     inscripcion: z.object({
       cbr: z.string().describe('Conservador de Bienes Raíces'),
       fojas: z.string().describe('Número de fojas'),
       numero: z.string().describe('Número de inscripción'),
       ano: z.string().describe('Año de inscripción'),
-    }).nullable().describe('Datos de inscripción en el CBR'),
-  }).nullable().describe('Información del inmueble'),
+    }).nullable(),
+  }).nullable(),
+  
+  // Información societaria (para análisis de sociedades)
+  sociedad: z.object({
+    razonSocial: z.string().nullable(),
+    rut: z.string().nullable(),
+    tipoSociedad: z.string().nullable().describe('SA, SpA, Ltda, etc.'),
+    constitucion: z.object({
+      fecha: z.string().nullable(),
+      notaria: z.string().nullable(),
+      repertorio: z.string().nullable(),
+    }).nullable(),
+    publicacion: z.object({
+      diarioOficial: z.string().nullable(),
+      fecha: z.string().nullable(),
+    }).nullable(),
+    inscripcionComercio: z.object({
+      cbr: z.string().nullable(),
+      fojas: z.string().nullable(),
+      numero: z.string().nullable(),
+      ano: z.string().nullable(),
+    }).nullable(),
+    vigencia: z.object({
+      certificadoFecha: z.string().nullable(),
+      estado: z.string().nullable(),
+    }).nullable(),
+    modificaciones: z.array(z.object({
+      fecha: z.string().nullable(),
+      descripcion: z.string().nullable(),
+      notaria: z.string().nullable(),
+    })).nullable(),
+    apoderados: z.array(z.object({
+      nombre: z.string(),
+      clase: z.string().nullable(),
+      facultades: z.array(z.string()).nullable(),
+    })).nullable(),
+    formaActuar: z.string().nullable().describe('Cómo deben actuar los apoderados'),
+  }).nullable(),
+  
+  // Información de poderes/mandatos
+  poder: z.object({
+    vigencia: z.string().nullable(),
+    fechaOtorgamiento: z.string().nullable(),
+    notaria: z.string().nullable(),
+    mandante: z.string().nullable(),
+    mandatario: z.string().nullable(),
+    facultades: z.array(z.object({
+      nombre: z.string(),
+      presente: z.boolean(),
+      observacion: z.string().nullable(),
+    })).nullable(),
+    restricciones: z.array(z.string()).nullable(),
+  }).nullable(),
+  
+  // Información de gravámenes y certificados
+  gravamenes: z.array(z.object({
+    tipo: z.string().describe('Hipoteca, prohibición, etc.'),
+    descripcion: z.string(),
+    beneficiario: z.string().nullable(),
+    inscripcion: z.string().nullable(),
+  })).nullable(),
+  
+  expropiabilidad: z.object({
+    serviu: z.object({
+      fecha: z.string().nullable(),
+      region: z.string().nullable(),
+      afecta: z.boolean().nullable(),
+    }).nullable(),
+    dom: z.object({
+      fecha: z.string().nullable(),
+      comuna: z.string().nullable(),
+      afecta: z.boolean().nullable(),
+    }).nullable(),
+    vialidad: z.object({
+      fecha: z.string().nullable(),
+      afecta: z.boolean().nullable(),
+    }).nullable(),
+  }).nullable(),
+  
+  contribuciones: z.object({
+    rol: z.string().nullable(),
+    comuna: z.string().nullable(),
+    deuda: z.boolean().nullable(),
+    fechaCertificado: z.string().nullable(),
+    exento: z.boolean().nullable(),
+  }).nullable(),
+  
+  // Cláusulas y condiciones
   clausulas: z.array(z.object({
-    tipo: z.string().describe('Tipo de cláusula (precio, forma de pago, entrega, garantías, etc.)'),
-    descripcion: z.string().describe('Contenido resumido de la cláusula'),
-  })).describe('Cláusulas principales del documento'),
+    numero: z.string().nullable(),
+    tipo: z.string(),
+    descripcion: z.string(),
+  })),
+  
+  // Montos y pagos
   montos: z.array(z.object({
-    concepto: z.string().describe('Concepto del monto (precio de venta, hipoteca, honorarios, etc.)'),
-    monto: z.string().describe('Valor numérico'),
-    moneda: z.string().describe('Moneda (CLP, UF, USD, etc.)'),
-  })).describe('Montos mencionados en el documento'),
+    concepto: z.string(),
+    monto: z.string(),
+    moneda: z.string(),
+    formaPago: z.string().nullable(),
+  })),
+  
+  // Plazos
   plazos: z.array(z.object({
-    descripcion: z.string().describe('Descripción del plazo'),
-    fecha: z.string().nullable().describe('Fecha límite si aplica'),
-  })).describe('Plazos importantes'),
-  observaciones: z.array(z.string()).describe('Observaciones relevantes, alertas o información adicional importante'),
+    descripcion: z.string(),
+    fecha: z.string().nullable(),
+  })),
+  
+  // Transcripción literal (para dominio vigente)
+  transcripcionLiteral: z.string().nullable().describe('Transcripción textual del documento'),
+  
+  // Forma de adquisición
+  formaAdquisicion: z.object({
+    tipo: z.string().nullable().describe('Compraventa, herencia, aporte, etc.'),
+    escritura: z.string().nullable(),
+    notaria: z.string().nullable(),
+    fecha: z.string().nullable(),
+  }).nullable(),
+  
+  // Observaciones y alertas
+  observaciones: z.array(z.string()),
+  alertas: z.array(z.object({
+    tipo: z.enum(['info', 'warning', 'error']),
+    mensaje: z.string(),
+  })),
 })
 
 const analysisResultSchema = z.object({
-  documentType: z.enum([
-    'inscripcion_dominio',
-    'compraventa',
-    'mandato',
-    'hipoteca',
-    'prohibicion',
-    'usufructo',
-    'servidumbre',
-    'otro'
-  ]).describe('Clasificación del tipo de documento'),
+  analysisType: z.string().describe('Tipo de análisis realizado'),
+  documentType: z.string().describe('Clasificación del documento'),
   extractedData: extractedDataSchema,
-  summary: z.string().describe('Resumen ejecutivo del documento en español, máximo 3 párrafos'),
-  confidence: z.number().min(0).max(1).describe('Nivel de confianza del análisis (0 a 1)'),
+  summary: z.string().describe('Resumen ejecutivo del análisis'),
+  informe: z.string().describe('Informe completo formateado según el tipo de análisis'),
+  confidence: z.number().min(0).max(1).describe('Nivel de confianza del análisis'),
 })
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File
+    const analysisType = (formData.get('analysisType') as AnalysisType) || 'auto'
     
     if (!file) {
       return Response.json({ error: 'No se proporcionó archivo' }, { status: 400 })
@@ -72,7 +188,7 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     
-    // Dynamic import for pdf-parse to avoid issues
+    // Dynamic import for pdf-parse
     const pdfParse = (await import('pdf-parse')).default
     const pdfData = await pdfParse(buffer)
     const textContent = pdfData.text
@@ -83,45 +199,35 @@ export async function POST(req: Request) {
       }, { status: 400 })
     }
 
-    const systemPrompt = `Eres un experto abogado chileno especializado en análisis de documentos legales.
-Tu tarea es analizar documentos jurídicos chilenos y extraer información estructurada.
+    const specificPrompt = getPromptForType(analysisType)
+    
+    const systemPrompt = `${specificPrompt}
 
-TIPOS DE DOCUMENTOS QUE PUEDES IDENTIFICAR:
-- inscripcion_dominio: Inscripciones de dominio en el Conservador de Bienes Raíces
-- compraventa: Escrituras de compraventa de inmuebles
-- mandato: Mandatos generales o especiales, poderes
-- hipoteca: Constitución de hipotecas
-- prohibicion: Prohibiciones de gravar y enajenar
-- usufructo: Constitución de usufructo
-- servidumbre: Constitución de servidumbres
-- otro: Cualquier otro documento legal
+INSTRUCCIONES GENERALES:
+1. Analiza el documento completo y extrae TODA la información relevante
+2. Sigue el formato de salida estructurado
+3. En el campo "informe" genera un informe completo y formateado según el tipo de análisis
+4. Si detectas información faltante o problemas, agrégalos en "alertas"
+5. Usa el formato de fecha chileno (DD/MM/YYYY)
+6. Los RUTs deben estar en formato XX.XXX.XXX-X
+7. Si algún campo no está presente, déjalo como null o array vacío
+8. El resumen debe ser conciso (máximo 3 párrafos)
+9. El informe debe ser completo y seguir la estructura del tipo de análisis seleccionado
 
-INSTRUCCIONES:
-1. Identifica el tipo de documento
-2. Extrae TODA la información relevante del texto
-3. Presta especial atención a:
-   - Nombres completos y RUTs de las partes
-   - Datos del inmueble (dirección, deslindes, inscripción CBR)
-   - Montos y formas de pago
-   - Cláusulas importantes
-   - Plazos y condiciones
-4. Genera un resumen ejecutivo claro y conciso
-5. Indica tu nivel de confianza basado en la calidad del texto extraído
+IMPORTANTE: Responde siempre en español chileno legal.`
 
-IMPORTANTE: 
-- Responde siempre en español
-- Usa el formato de fecha chileno (DD/MM/YYYY)
-- Los RUTs deben estar en formato XX.XXX.XXX-X
-- Si algún campo no está presente en el documento, déjalo como null o array vacío`
+    const userPrompt = analysisType === 'auto' 
+      ? `Analiza el siguiente documento legal chileno, identifica su tipo y extrae toda la información relevante:\n\n${textContent.substring(0, 100000)}`
+      : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno:\n\n${textContent.substring(0, 100000)}`
 
     const { output } = await generateText({
       model: 'google/gemini-2.5-flash-preview-05-20',
       system: systemPrompt,
-      prompt: `Analiza el siguiente documento legal chileno y extrae toda la información relevante:\n\n${textContent.substring(0, 100000)}`,
+      prompt: userPrompt,
       output: Output.object({
         schema: analysisResultSchema,
       }),
-      maxOutputTokens: 8000,
+      maxOutputTokens: 16000,
       temperature: 0.1,
     })
 

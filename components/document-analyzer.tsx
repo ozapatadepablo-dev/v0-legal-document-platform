@@ -4,14 +4,17 @@ import { useState, useCallback } from 'react'
 import { UploadZone } from './upload-zone'
 import { ProcessingStatus } from './processing-status'
 import { AnalysisResults } from './analysis-results'
+import { AnalysisTypeSelector } from './analysis-type-selector'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Download } from 'lucide-react'
+import { RefreshCw, Download, FileText } from 'lucide-react'
 import type { AnalysisResult } from '@/lib/types'
+import type { AnalysisType } from '@/lib/legal-prompts'
 
 type ProcessingStage = 'uploading' | 'extracting' | 'analyzing' | 'completed' | 'error'
 
 export function DocumentAnalyzer() {
   const [file, setFile] = useState<File | null>(null)
+  const [analysisType, setAnalysisType] = useState<AnalysisType>('auto')
   const [stage, setStage] = useState<ProcessingStage | null>(null)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -23,16 +26,15 @@ export function DocumentAnalyzer() {
     setResult(null)
 
     try {
-      // Simulate upload delay
       await new Promise(resolve => setTimeout(resolve, 500))
       setStage('extracting')
       
-      // Simulate extraction delay
       await new Promise(resolve => setTimeout(resolve, 800))
       setStage('analyzing')
 
       const formData = new FormData()
       formData.append('file', selectedFile)
+      formData.append('analysisType', analysisType)
 
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -51,7 +53,7 @@ export function DocumentAnalyzer() {
       setError(err instanceof Error ? err.message : 'Error desconocido')
       setStage('error')
     }
-  }, [])
+  }, [analysisType])
 
   const handleClear = useCallback(() => {
     setFile(null)
@@ -74,10 +76,30 @@ export function DocumentAnalyzer() {
     URL.revokeObjectURL(url)
   }, [result, file])
 
+  const handleExportInforme = useCallback(() => {
+    if (!result?.informe) return
+    
+    const blob = new Blob([result.informe], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `informe-${file?.name.replace('.pdf', '')}-${Date.now()}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [result, file])
+
   const isProcessing = stage !== null && stage !== 'completed' && stage !== 'error'
 
   return (
     <div className="space-y-8">
+      <AnalysisTypeSelector
+        selected={analysisType}
+        onSelect={setAnalysisType}
+        disabled={isProcessing}
+      />
+
       <UploadZone
         onFileSelect={analyzeDocument}
         isProcessing={isProcessing}
@@ -97,6 +119,10 @@ export function DocumentAnalyzer() {
             <Button onClick={handleClear} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
               Analizar otro documento
+            </Button>
+            <Button onClick={handleExportInforme} variant="default">
+              <FileText className="mr-2 h-4 w-4" />
+              Exportar Informe
             </Button>
             <Button onClick={handleExportJSON} variant="secondary">
               <Download className="mr-2 h-4 w-4" />
