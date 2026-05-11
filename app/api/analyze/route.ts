@@ -1,6 +1,10 @@
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
+
+// Disable worker for serverless environment
+GlobalWorkerOptions.workerSrc = ''
 
 // Schema flexible para diferentes tipos de análisis
 const extractedDataSchema = z.object({
@@ -186,12 +190,19 @@ export async function POST(req: Request) {
     }
 
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
     
-    // Dynamic import for pdf-parse
-    const pdfParse = (await import('pdf-parse')).default
-    const pdfData = await pdfParse(buffer)
-    const textContent = pdfData.text
+    // Extract text using pdfjs-dist
+    const pdf = await getDocument({ data: arrayBuffer }).promise
+    let textContent = ''
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      const pageText = content.items
+        .map((item: { str?: string }) => ('str' in item ? item.str : ''))
+        .join(' ')
+      textContent += pageText + '\n'
+    }
 
     if (!textContent || textContent.trim().length < 50) {
       return Response.json({ 
