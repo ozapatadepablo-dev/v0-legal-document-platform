@@ -189,7 +189,12 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer()
     
     // Extract text using unpdf (serverless-friendly)
-    const { text: textContent } = await extractText(new Uint8Array(arrayBuffer))
+    const pdfResult = await extractText(new Uint8Array(arrayBuffer))
+    
+    // Handle both string and array responses from unpdf
+    const textContent = Array.isArray(pdfResult.text) 
+      ? pdfResult.text.join('\n') 
+      : String(pdfResult.text || '')
 
     if (!textContent || textContent.trim().length < 50) {
       return Response.json({ 
