@@ -109,7 +109,7 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
         </div>
       </div>
 
-      {/* Alerts */}
+      {/* Alerts Section */}
       {extractedData.alertas && extractedData.alertas.length > 0 && (
         <div className="space-y-2">
           {extractedData.alertas.map((alerta, index) => {
