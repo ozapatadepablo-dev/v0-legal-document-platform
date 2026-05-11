@@ -162,10 +162,16 @@ IMPORTANTE: Responde siempre en español chileno legal.`
 
     const responseText = response.response.text()
     
+    console.log('[v0] Gemini response (first 500 chars):', responseText.substring(0, 500))
+    console.log('[v0] Response length:', responseText.length)
+    console.log('[v0] Response starts with:', responseText.substring(0, 50))
+    
     try {
       const output = JSON.parse(responseText)
       return Response.json(output)
-    } catch {
+    } catch (e) {
+      console.error('[v0] JSON parse error:', e)
+      console.log('[v0] Full response:', responseText)
       // If JSON parsing fails, return the raw response wrapped in our schema
       return Response.json({
         analysisType,

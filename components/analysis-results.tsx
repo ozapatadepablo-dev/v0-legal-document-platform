@@ -120,14 +120,19 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
             }
             
             // Normalizar el tipo de alerta - si no coincide, usar warning como defecto
-            const alertType = alerta.tipo?.toLowerCase() || 'warning'
-            const style = alertStyles[alertType] || alertStyles.warning
+            const alertType = (typeof alerta.tipo === 'string' ? alerta.tipo.toLowerCase() : 'warning') || 'warning'
+            const style = alertStyles[alertType] || alertStyles['warning']
+            
+            if (!style) {
+              return null // Fallback if style is still undefined
+            }
+            
             const AlertIcon = style.icon
             
             return (
               <div key={index} className={cn("flex items-start gap-3 rounded-lg p-4", style.bg)}>
                 <AlertIcon className={cn("mt-0.5 h-5 w-5 shrink-0", style.color)} />
-                <p className="text-sm text-foreground">{alerta.mensaje}</p>
+                <p className="text-sm text-foreground">{alerta.mensaje || alerta}</p>
               </div>
             )
           })}
