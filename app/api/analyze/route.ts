@@ -1,23 +1,6 @@
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Use pdf-parse for better PDF text extraction
-async function extractPdfText(arrayBuffer: ArrayBuffer): Promise<string> {
-  try {
-    // Dynamic import to handle Buffer in serverless
-    const pdfParse = await import('pdf-parse/lib/pdf-parse')
-    const buffer = Buffer.from(arrayBuffer)
-    const pdfData = await pdfParse(buffer)
-    
-    // pdfParse returns the text directly
-    return pdfData.text || ''
-  } catch (error) {
-    console.error('[v0] Error with pdf-parse, trying fallback:', error)
-    // Fallback: basic text extraction
-    return ''
-  }
-}
-
 export async function POST(req: Request) {
   try {
     if (!process.env.GOOGLE_API_KEY) {
@@ -35,20 +18,10 @@ export async function POST(req: Request) {
     }
 
     const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
     
-    // Extract text using pdf-parse
-    let textContent = await extractPdfText(arrayBuffer)
-
-    console.log('[v0] PDF extracted text length:', textContent.length)
-    
-    if (!textContent || textContent.trim().length < 50) {
-      return Response.json({ 
-        error: 'No se pudo extraer texto del PDF. Asegúrese de que el documento contenga texto seleccionable.' 
-      }, { status: 400 })
-    }
-
-    // Log para verificar que se envía completo
-    console.log('[v0] Sending to Gemini text length:', textContent.length)
+    // Convert to base64 for Gemini API
+    const base64Data = buffer.toString('base64')
 
     const specificPrompt = getPromptForType(analysisType)
     
@@ -68,8 +41,8 @@ INSTRUCCIONES GENERALES:
 IMPORTANTE: Responde siempre en español chileno legal.`
 
     const userPrompt = analysisType === 'auto' 
-      ? `Analiza el siguiente documento legal chileno, identifica su tipo y extrae toda la información relevante:\n\n${textContent}`
-      : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno:\n\n${textContent}`
+      ? `Analiza el siguiente documento legal chileno (PDF adjunto), identifica su tipo y extrae toda la información relevante según el formato JSON requerido.`
+      : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno (PDF adjunto), extrayendo toda la información según el formato JSON requerido.`
 
     // Initialize Gemini client
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
@@ -174,6 +147,12 @@ IMPORTANTE: Responde siempre en español chileno legal.`
           parts: [
             {
               text: systemPrompt + '\n\n' + userPrompt,
+            },
+            {
+              inlineData: {
+                mimeType: 'application/pdf',
+                data: base64Data,
+              },
             },
           ],
         },
