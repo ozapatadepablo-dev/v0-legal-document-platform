@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import { Upload, FileText, X, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -15,6 +15,7 @@ interface UploadZoneProps {
 export function UploadZone({ onFileSelect, isProcessing, currentFile, onClear }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const validateFile = (file: File): boolean => {
     setError(null)
@@ -97,23 +98,30 @@ export function UploadZone({ onFileSelect, isProcessing, currentFile, onClear }:
   return (
     <div className="space-y-4">
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
         className={cn(
           "relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all",
           isDragging
             ? "border-primary bg-primary/5"
             : "border-border bg-card hover:border-primary/50 hover:bg-muted/50",
-          isProcessing && "pointer-events-none opacity-50"
+          isProcessing && "opacity-50"
         )}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
       >
         <input
+          ref={fileInputRef}
           type="file"
           accept=".pdf"
           onChange={handleFileInput}
           disabled={isProcessing}
           className="absolute inset-0 cursor-pointer opacity-0"
+          onClick={(e) => {
+            if (isProcessing) {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
         />
         
         <div className="flex flex-col items-center gap-4">
