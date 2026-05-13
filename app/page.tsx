@@ -1,46 +1,95 @@
-import { Header } from '@/components/header'
-import { DocumentAnalyzer } from '@/components/document-analyzer'
-import { FeaturesSection } from '@/components/features-section'
+'use client'
 
-export default function HomePage() {
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Header } from '@/components/header'
+import { FileText, Layers } from 'lucide-react'
+import Link from 'next/link'
+
+export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main>
-        {/* Hero Section */}
-        <section className="relative overflow-hidden py-16 sm:py-24">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
-          
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl text-center">
-              <h1 className="text-pretty text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                Análisis inteligente de documentos jurídicos chilenos
-              </h1>
-              <p className="mt-6 text-balance text-lg text-muted-foreground">
-                Sube tus escrituras, inscripciones de dominio, compraventas o mandatos y obtén un análisis estructurado con información extraída automáticamente usando inteligencia artificial.
-              </p>
-            </div>
-
-            <div className="mx-auto mt-12 max-w-2xl">
-              <DocumentAnalyzer />
-            </div>
-          </div>
-        </section>
-
-        <FeaturesSection />
-
-        {/* Footer */}
-        <footer className="border-t border-border bg-card py-8">
-          <div className="mx-auto max-w-7xl px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
-            <p>
-              LexAnalytica Chile — Plataforma de análisis de documentos jurídicos con IA
-            </p>
-            <p className="mt-2">
-              Los análisis son orientativos y no reemplazan la asesoría legal profesional
+      <main className="container mx-auto px-4 py-20">
+        <div className="space-y-8 text-center">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-bold text-foreground">
+              Elige tu modalidad de análisis
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Analiza documentos legales chilenos con IA. Selecciona cómo prefieres procesar tus documentos.
             </p>
           </div>
-        </footer>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 max-w-4xl mx-auto">
+            {/* Opción 1: Análisis Individual */}
+            <Link href="/individual" className="group">
+              <Card className="p-8 h-full hover:border-primary/50 transition-all cursor-pointer">
+                <div className="space-y-4">
+                  <div className="inline-flex p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                    <FileText className="h-8 w-8 text-primary" />
+                  </div>
+                  
+                  <div className="space-y-2 text-left">
+                    <h2 className="text-2xl font-bold text-foreground">
+                      Análisis Individual
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Sube un documento y elige el tipo de análisis específico que deseas realizar.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-4 text-left">
+                    <p className="text-sm font-semibold text-foreground">Ideal para:</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>✓ Análisis detallado de un documento</li>
+                      <li>✓ Revisiones específicas por tipo</li>
+                      <li>✓ Procesamiento independiente</li>
+                    </ul>
+                  </div>
+
+                  <Button className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90">
+                    Ir a Análisis Individual
+                  </Button>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Opción 2: Análisis Múltiple */}
+            <Link href="/multiple" className="group">
+              <Card className="p-8 h-full hover:border-accent/50 transition-all cursor-pointer border-accent/30">
+                <div className="space-y-4">
+                  <div className="inline-flex p-3 bg-accent/10 rounded-lg group-hover:bg-accent/20 transition-colors">
+                    <Layers className="h-8 w-8 text-accent" />
+                  </div>
+                  
+                  <div className="space-y-2 text-left">
+                    <h2 className="text-2xl font-bold text-foreground">
+                      Análisis Múltiple
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Sube un documento y analízalo con todos los tipos disponibles. Obtén un informe consolidado.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-4 text-left">
+                    <p className="text-sm font-semibold text-foreground">Ideal para:</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>✓ Visión completa del documento</li>
+                      <li>✓ Análisis desde múltiples perspectivas</li>
+                      <li>✓ Informe consolidado en un solo lugar</li>
+                    </ul>
+                  </div>
+
+                  <Button className="w-full mt-6 bg-accent text-accent-foreground hover:bg-accent/90">
+                    Ir a Análisis Múltiple
+                  </Button>
+                </div>
+              </Card>
+            </Link>
+          </div>
+        </div>
       </main>
     </div>
   )
