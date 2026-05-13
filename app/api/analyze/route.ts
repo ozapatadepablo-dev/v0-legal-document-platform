@@ -3,15 +3,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.GOOGLE_API_KEY) {
+    const apiKey = process.env.GOOGLE_API_KEY
+
+    if (!apiKey) {
+      console.error('[v0] GOOGLE_API_KEY no está definida')
       return Response.json(
-        { error: 'API Key no configurada. Configure GOOGLE_API_KEY en variables de entorno.' },
+        { error: 'API Key no configurada' },
         { status: 500 }
       )
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY
-    console.log('[v0] GOOGLE_API_KEY últimos 10 caracteres:', apiKey?.slice(-10))
+    console.log('[v0] API Key última 10 chars:', apiKey.slice(-10))
 
     const formData = await req.formData()
     const file = formData.get('file') as File
@@ -23,8 +25,6 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-
-    // Convert to base64 for Gemini API
     const base64Data = buffer.toString('base64')
 
     const specificPrompt = getPromptForType(analysisType)
@@ -118,10 +118,11 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
       },
     }
 
-    // Initialize Gemini client with paid API key
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
+    console.log('[v0] Creando cliente Gemini...')
+    const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
+    console.log('[v0] Enviando petición a Gemini...')
     const response = await model.generateContent({
       contents: [
         {
@@ -147,12 +148,14 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
     }
 
     const responseText = response.response.text()
+    console.log('[v0] Respuesta recibida, parseando JSON...')
 
     try {
       const output = JSON.parse(responseText)
+      console.log('[v0] JSON parseado exitosamente')
       return Response.json(output)
     } catch (e) {
-      console.error('[v0] JSON parse error:', e)
+      console.error('[v0] Error parseando JSON:', e)
       return Response.json({
         analysisType,
         documentType: 'Desconocido',
@@ -166,12 +169,12 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
           clausulas: [],
           montos: [],
           alertas: [],
-          observaciones: ['Respuesta no estructurada de Gemini - revisar resultado manualmente'],
+          observaciones: ['Respuesta no estructurada de Gemini'],
         },
       })
     }
   } catch (error) {
-    console.error('Error analyzing document:', error)
+    console.error('[v0] Error analyzing document:', error instanceof Error ? error.message : error)
     return Response.json(
       { error: error instanceof Error ? error.message : 'Error al procesar el documento' },
       { status: 500 }
