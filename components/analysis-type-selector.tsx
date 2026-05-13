@@ -36,11 +36,11 @@ export function AnalysisTypeSelector({ selected, onSelect, disabled }: AnalysisT
               onClick={() => onSelect(type.id)}
               disabled={disabled}
               className={cn(
-                "group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all",
+                "group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all cursor-pointer",
                 isSelected
                   ? "border-primary bg-primary/5"
                   : "border-border bg-card hover:border-primary/50 hover:bg-muted/50",
-                disabled && "pointer-events-none opacity-50"
+                disabled && "opacity-50 cursor-not-allowed"
               )}
             >
               <div className={cn(
