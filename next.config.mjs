@@ -6,11 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Aumentar límite de carga de archivos a 100MB
-  api: {
-    bodyParser: {
-      sizeLimit: '100mb',
-    },
+  // Límite de carga de archivos para route handlers
+  serverRuntimeConfig: {
+    maxBodySize: '100mb',
   },
 }
 
