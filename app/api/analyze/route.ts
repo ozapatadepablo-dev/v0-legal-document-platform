@@ -130,9 +130,10 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
       try {
         const apiKey = apiKeys[keyIndex]
         console.log(`[v0] Intentando con API Key ${keyIndex + 1}/${apiKeys.length}`)
+        console.log(`[v0] API Key primeros 20 caracteres: ${apiKey.substring(0, 20)}...`)
 
         const genAI = new GoogleGenerativeAI(apiKey)
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
 
         const response = await model.generateContent({
           contents: [
