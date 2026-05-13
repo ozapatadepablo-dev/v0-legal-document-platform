@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 function getApiKeys(): string[] {
   const keys: string[] = []
   if (process.env.GOOGLE_API_KEY) keys.push(process.env.GOOGLE_API_KEY)
+  if (process.env.GOOGLE_API_KEY_2) keys.push(process.env.GOOGLE_API_KEY_2)
   return keys
 }
 
