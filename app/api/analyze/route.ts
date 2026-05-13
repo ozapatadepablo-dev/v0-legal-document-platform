@@ -1,20 +1,11 @@
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Get all available API keys for rotation
-function getApiKeys(): string[] {
-  const keys: string[] = []
-  if (process.env.GOOGLE_API_KEY) keys.push(process.env.GOOGLE_API_KEY)
-  if (process.env.GOOGLE_API_KEY_2) keys.push(process.env.GOOGLE_API_KEY_2)
-  return keys
-}
-
 export async function POST(req: Request) {
   try {
-    const apiKeys = getApiKeys()
-    if (apiKeys.length === 0) {
+    if (!process.env.GOOGLE_API_KEY) {
       return Response.json(
-        { error: 'No hay API keys configuradas. Configure GOOGLE_API_KEY en variables de entorno.' },
+        { error: 'API Key no configurada. Configure GOOGLE_API_KEY en variables de entorno.' },
         { status: 500 }
       )
     }
@@ -124,86 +115,58 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
       },
     }
 
-    // Try with each API key until one works
-    let lastError: any
-    for (let keyIndex = 0; keyIndex < apiKeys.length; keyIndex++) {
-      try {
-        const apiKey = apiKeys[keyIndex]
-        console.log(`[v0] Intentando con API Key ${keyIndex + 1}/${apiKeys.length}`)
-        console.log(`[v0] API Key primeros 20 caracteres: ${apiKey.substring(0, 20)}...`)
+    // Initialize Gemini client with paid API key
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
 
-        const genAI = new GoogleGenerativeAI(apiKey)
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
-
-        const response = await model.generateContent({
-          contents: [
+    const response = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
             {
-              role: 'user',
-              parts: [
-                {
-                  text: systemPrompt + '\n\n' + userPrompt,
-                },
-                {
-                  inlineData: {
-                    mimeType: 'application/pdf',
-                    data: base64Data,
-                  },
-                },
-              ],
+              text: systemPrompt + '\n\n' + userPrompt,
+            },
+            {
+              inlineData: {
+                mimeType: 'application/pdf',
+                data: base64Data,
+              },
             },
           ],
-          generationConfig,
-        })
+        },
+      ],
+      generationConfig,
+    })
 
-        if (!response) {
-          throw new Error('No response from Gemini')
-        }
-
-        const responseText = response.response.text()
-
-        console.log('[v0] Gemini response (first 500 chars):', responseText.substring(0, 500))
-        console.log('[v0] Response length:', responseText.length)
-
-        try {
-          const output = JSON.parse(responseText)
-          return Response.json(output)
-        } catch (e) {
-          console.error('[v0] JSON parse error:', e)
-          return Response.json({
-            analysisType,
-            documentType: 'Desconocido',
-            summary: responseText,
-            informe: responseText,
-            confidence: 0.5,
-            extractedData: {
-              tipoDocumento: 'Desconocido',
-              tipoAnalisis: analysisType,
-              partes: [],
-              clausulas: [],
-              montos: [],
-              alertas: [],
-              observaciones: ['Respuesta no estructurada de Gemini - revisar resultado manualmente'],
-            },
-          })
-        }
-      } catch (error: any) {
-        lastError = error
-        console.error(`[v0] API Key ${keyIndex + 1} falló:`, error.message)
-
-        // If it's a quota error (429) and there are more keys, try the next one
-        if (error.status === 429 && keyIndex < apiKeys.length - 1) {
-          console.log(`[v0] Cuota agotada, intentando siguiente API Key...`)
-          continue
-        }
-
-        // If it's the last key or not a quota error, throw
-        if (keyIndex === apiKeys.length - 1) {
-          throw error
-        }
-      }
+    if (!response) {
+      throw new Error('No response from Gemini')
     }
 
-    throw lastError || new Error('No se pudo procesar con ninguna API Key')
+    const responseText = response.response.text()
+
+    try {
+      const output = JSON.parse(responseText)
+      return Response.json(output)
+    } catch (e) {
+      console.error('[v0] JSON parse error:', e)
+      return Response.json({
+        analysisType,
+        documentType: 'Desconocido',
+        summary: responseText,
+        informe: responseText,
+        confidence: 0.5,
+        extractedData: {
+          tipoDocumento: 'Desconocido',
+          tipoAnalisis: analysisType,
+          partes: [],
+          clausulas: [],
+          montos: [],
+          alertas: [],
+          observaciones: ['Respuesta no estructurada de Gemini - revisar resultado manualmente'],
+        },
+      })
+    }
   } catch (error) {
     console.error('Error analyzing document:', error)
     return Response.json(
