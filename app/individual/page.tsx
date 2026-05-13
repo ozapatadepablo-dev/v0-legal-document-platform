@@ -22,7 +22,7 @@ export default function IndividualPage() {
 
             <div className="mx-auto max-w-3xl text-center mb-12">
               <h1 className="text-pretty text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                Análisis Individual
+                ANALISIS INDIVIDUAL
               </h1>
               <p className="mt-4 text-balance text-lg text-muted-foreground">
                 Sube un documento legal y selecciona el tipo de análisis específico que deseas realizar.
@@ -40,7 +40,7 @@ export default function IndividualPage() {
         <footer className="border-t border-border bg-card py-8">
           <div className="mx-auto max-w-7xl px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
             <p>
-              Lexoz — Plataforma de análisis de documentos jurídicos con IA
+              Lexoz — Plataforma de análisis de documentos Legales
             </p>
             <p className="mt-2">
               Los análisis son orientativos y no reemplazan la asesoría legal profesional

@@ -37,7 +37,7 @@ export default function MultiplePage() {
         <footer className="border-t border-border bg-card py-8">
           <div className="mx-auto max-w-7xl px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
             <p>
-              Lexoz — Plataforma de análisis de documentos jurídicos con IA
+              Lexoz — Plataforma de análisis de documentos Legales
             </p>
             <p className="mt-2">
               Los análisis son orientativos y no reemplazan la asesoría legal profesional

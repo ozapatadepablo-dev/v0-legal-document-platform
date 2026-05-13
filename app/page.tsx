@@ -33,7 +33,7 @@ export default function Home() {
                   
                   <div className="space-y-2 text-left">
                     <h2 className="text-2xl font-bold text-foreground">
-                      Análisis Individual
+                      ANALISIS INDIVIDUAL
                     </h2>
                     <p className="text-muted-foreground">
                       Sube un documento y elige el tipo de análisis específico que deseas realizar.
@@ -50,7 +50,7 @@ export default function Home() {
                   </div>
 
                   <Button className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90">
-                    Ir a Análisis Individual
+                    Ir a ANALISIS INDIVIDUAL
                   </Button>
                 </div>
               </Card>
