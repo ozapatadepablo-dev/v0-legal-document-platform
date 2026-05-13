@@ -1,40 +1,59 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { UploadZone } from './upload-zone'
-import { ProcessingStatus } from './processing-status'
-import { AnalysisResults } from './analysis-results'
-import { AnalysisTypeSelector } from './analysis-type-selector'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Download, FileText } from 'lucide-react'
+import { RefreshCw, Upload } from 'lucide-react'
 import type { AnalysisResult } from '@/lib/types'
 import type { AnalysisType } from '@/lib/legal-prompts'
 
-type ProcessingStage = 'uploading' | 'extracting' | 'analyzing' | 'completed' | 'error'
+const ANALYSIS_TYPES: Array<{ id: AnalysisType; label: string; description: string }> = [
+  { id: 'auto', label: 'Detección Automática', description: 'El sistema detecta...' },
+  { id: 'property', label: 'Dominio Vigente', description: 'Transcripción de...' },
+  { id: 'buyer', label: 'Estudio Compraventa', description: 'Análisis de escrituras de...' },
+  { id: 'company', label: 'Estudio Sociedades', description: 'Informe de SA, SpA...' },
+  { id: 'powers', label: 'Estudio Poderes', description: 'Análisis de poderes y...' },
+  { id: 'extraction', label: 'Extraer Información', description: 'Extracción de datos de...' },
+]
 
 export function DocumentAnalyzer() {
+  const [selectedType, setSelectedType] = useState<AnalysisType>('auto')
   const [file, setFile] = useState<File | null>(null)
-  const [analysisType, setAnalysisType] = useState<AnalysisType>('auto')
-  const [stage, setStage] = useState<ProcessingStage | null>(null)
+  const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const analyzeDocument = useCallback(async (selectedFile: File) => {
-    setFile(selectedFile)
-    setStage('uploading')
-    setError(null)
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile?.type === 'application/pdf') {
+      setFile(selectedFile)
+      setError(null)
+      handleAnalyze(selectedFile)
+    } else {
+      setError('Solo se aceptan archivos PDF')
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const droppedFile = e.dataTransfer.files?.[0]
+    if (droppedFile?.type === 'application/pdf') {
+      setFile(droppedFile)
+      setError(null)
+      handleAnalyze(droppedFile)
+    } else {
+      setError('Solo se aceptan archivos PDF')
+    }
+  }
+
+  const handleAnalyze = async (analyzeFile: File) => {
+    setLoading(true)
     setResult(null)
+    setError(null)
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setStage('extracting')
-      
-      await new Promise(resolve => setTimeout(resolve, 800))
-      setStage('analyzing')
-
       const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('analysisType', analysisType)
+      formData.append('file', analyzeFile)
+      formData.append('analysisType', selectedType)
 
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -44,103 +63,119 @@ export function DocumentAnalyzer() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al analizar el documento')
+        throw new Error(data.error || 'Error al analizar')
       }
 
       setResult(data)
-      setStage('completed')
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMsg)
-      setStage('error')
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
     }
-  }, [analysisType])
+  }
 
-  const handleClear = useCallback(() => {
+  const handleReset = () => {
     setFile(null)
-    setStage(null)
     setResult(null)
     setError(null)
-  }, [])
-
-  const handleExportJSON = useCallback(() => {
-    if (!result) return
-    
-    const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `analisis-${file?.name.replace('.pdf', '')}-${Date.now()}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, [result, file])
-
-  const handleExportInforme = useCallback(() => {
-    if (!result?.informe) return
-    
-    const blob = new Blob([result.informe], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `informe-${file?.name.replace('.pdf', '')}-${Date.now()}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, [result, file])
-
-  const isProcessing = stage !== null && stage !== 'completed' && stage !== 'error'
+  }
 
   return (
     <div className="space-y-8">
-      <AnalysisTypeSelector
-        selected={analysisType}
-        onSelect={setAnalysisType}
-        disabled={isProcessing}
-      />
+      {/* Selector de tipo */}
+      <div>
+        <h3 className="mb-4 font-semibold">Tipo de Análisis</h3>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+          {ANALYSIS_TYPES.map((type) => (
+            <button
+              key={type.id}
+              onClick={() => {
+                setSelectedType(type.id)
+                setResult(null)
+              }}
+              disabled={loading}
+              className={`rounded-lg border-2 p-3 text-center transition-all ${
+                selectedType === type.id
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 bg-white hover:border-blue-300'
+              } ${loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+            >
+              <div className="text-sm font-medium">{type.label}</div>
+              <div className="text-xs text-gray-500">{type.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <UploadZone
-        onFileSelect={analyzeDocument}
-        isProcessing={isProcessing}
-        currentFile={file}
-        onClear={handleClear}
-      />
+      {/* Upload Zone */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center transition-all hover:border-blue-400"
+      >
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleFileInput}
+          disabled={loading}
+          className="hidden"
+          id="file-input"
+        />
+        <label htmlFor="file-input" className="cursor-pointer block">
+          <Upload className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+          <p className="font-medium">Arrastra tu documento PDF aquí</p>
+          <p className="text-sm text-gray-500">o haz clic para seleccionar un archivo</p>
+        </label>
+        {file && <p className="mt-2 text-sm text-green-600">✓ {file.name}</p>}
+      </div>
 
-      {stage && stage !== 'completed' && (
-        <ProcessingStatus stage={stage} error={error} />
-      )}
-
-      {stage === 'completed' && result && (
-        <div className="space-y-6">
-          <ProcessingStatus stage={stage} />
-          
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={handleClear} variant="outline">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Analizar otro documento
-            </Button>
-            <Button onClick={handleExportInforme} variant="default">
-              <FileText className="mr-2 h-4 w-4" />
-              Exportar Informe
-            </Button>
-            <Button onClick={handleExportJSON} variant="secondary">
-              <Download className="mr-2 h-4 w-4" />
-              Exportar JSON
-            </Button>
-          </div>
-
-          <AnalysisResults result={result} />
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-blue-50 p-4">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+          <span>Analizando documento...</span>
         </div>
       )}
 
-      {stage === 'error' && (
-        <div className="flex justify-center">
-          <Button onClick={handleClear} variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Intentar de nuevo
-          </Button>
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg bg-red-50 p-4 text-red-700">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {/* Results */}
+      {result && (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-green-50 p-4 text-green-700">
+            <strong>✓ Análisis completado</strong>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleReset} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Nuevo análisis
+            </Button>
+          </div>
+
+          <div className="space-y-4 rounded-lg bg-gray-50 p-6">
+            <h4 className="font-semibold">Resumen</h4>
+            <p className="text-sm text-gray-700">{result.summary}</p>
+
+            <h4 className="mt-4 font-semibold">Informe</h4>
+            <pre className="max-h-96 overflow-auto rounded bg-white p-4 text-sm whitespace-pre-wrap">
+              {result.informe}
+            </pre>
+
+            <div className="mt-4 space-y-2 text-sm">
+              <p>
+                <strong>Tipo de Documento:</strong> {result.documentType}
+              </p>
+              <p>
+                <strong>Confianza:</strong> {(result.confidence * 100).toFixed(0)}%
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
