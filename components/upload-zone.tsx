@@ -108,6 +108,11 @@ export function UploadZone({ onFileSelect, isProcessing, currentFile, onClear }:
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        onClick={() => {
+          if (!isProcessing && fileInputRef.current) {
+            fileInputRef.current.click()
+          }
+        }}
       >
         <input
           ref={fileInputRef}
