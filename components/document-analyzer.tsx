@@ -50,7 +50,8 @@ export function DocumentAnalyzer() {
       setResult(data)
       setStage('completed')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido'
+      setError(errorMsg)
       setStage('error')
     }
   }, [analysisType])
