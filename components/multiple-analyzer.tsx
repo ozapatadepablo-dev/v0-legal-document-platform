@@ -3,59 +3,70 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { UploadZone } from './upload-zone'
 import { ProcessingStatus } from './processing-status'
 import { AnalysisResults } from './analysis-results'
-import { type AnalysisType } from '@/lib/types'
-import { Download } from 'lucide-react'
+import { ANALYSIS_TYPES } from '@/lib/legal-prompts'
+import { type AnalysisType } from '@/lib/legal-prompts'
+import { Download, Upload, X } from 'lucide-react'
 
-type MultipleAnalysisResult = {
+type DocumentAnalysis = {
   type: AnalysisType
+  file: File | null
   result: any
   loading: boolean
   error?: string
 }
 
 export function MultipleAnalyzer() {
-  const [file, setFile] = useState<File | null>(null)
-  const [results, setResults] = useState<MultipleAnalysisResult[]>([])
+  const [documents, setDocuments] = useState<DocumentAnalysis[]>(
+    ANALYSIS_TYPES.filter(t => t.id !== 'auto').map(t => ({
+      type: t.id as AnalysisType,
+      file: null,
+      result: null,
+      loading: false,
+    }))
+  )
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  const analysisTypes: AnalysisType[] = [
-    'auto',
-    'dominio',
-    'compraventa',
-    'sociedades',
-    'poderes',
-    'certificados'
-  ]
-
-  const handleFileSelect = (selectedFile: File) => {
-    setFile(selectedFile)
-    setResults([])
+  const handleFileSelect = (type: AnalysisType, file: File | null) => {
+    setDocuments(prev =>
+      prev.map(doc =>
+        doc.type === type
+          ? { ...doc, file, result: null, error: undefined, loading: false }
+          : doc
+      )
+    )
   }
 
-  const startMultipleAnalysis = async () => {
-    if (!file) return
+  const handleRemoveFile = (type: AnalysisType) => {
+    setDocuments(prev =>
+      prev.map(doc =>
+        doc.type === type
+          ? { ...doc, file: null, result: null, error: undefined }
+          : doc
+      )
+    )
+  }
+
+  const startAnalysis = async () => {
+    const filesToAnalyze = documents.filter(d => d.file !== null)
+    if (filesToAnalyze.length === 0) return
 
     setIsAnalyzing(true)
-    
-    // Inicializar todos los análisis como cargando
-    const initialResults: MultipleAnalysisResult[] = analysisTypes.map(type => ({
-      type,
-      result: null,
-      loading: true,
-    }))
-    setResults(initialResults)
 
-    // Procesar cada tipo de análisis
-    for (let i = 0; i < analysisTypes.length; i++) {
-      const analysisType = analysisTypes[i]
-      
+    for (const doc of filesToAnalyze) {
+      if (!doc.file) continue
+
+      setDocuments(prev =>
+        prev.map(d =>
+          d.type === doc.type ? { ...d, loading: true } : d
+        )
+      )
+
       try {
         const formData = new FormData()
-        formData.append('file', file)
-        formData.append('analysisType', analysisType)
+        formData.append('file', doc.file)
+        formData.append('analysisType', doc.type)
 
         const response = await fetch('/api/analyze', {
           method: 'POST',
@@ -68,19 +79,26 @@ export function MultipleAnalyzer() {
 
         const data = await response.json()
 
-        // Actualizar este resultado
-        setResults(prev => prev.map((r, idx) => 
-          idx === i ? { ...r, result: data, loading: false } : r
-        ))
+        setDocuments(prev =>
+          prev.map(d =>
+            d.type === doc.type
+              ? { ...d, result: data, loading: false }
+              : d
+          )
+        )
       } catch (error) {
-        console.error(`Error in ${analysisType} analysis:`, error)
-        setResults(prev => prev.map((r, idx) => 
-          idx === i ? { 
-            ...r, 
-            loading: false, 
-            error: error instanceof Error ? error.message : 'Error desconocido' 
-          } : r
-        ))
+        console.error(`Error in ${doc.type} analysis:`, error)
+        setDocuments(prev =>
+          prev.map(d =>
+            d.type === doc.type
+              ? {
+                  ...d,
+                  loading: false,
+                  error: error instanceof Error ? error.message : 'Error desconocido',
+                }
+              : d
+          )
+        )
       }
     }
 
@@ -89,123 +107,200 @@ export function MultipleAnalyzer() {
 
   const downloadConsolidatedReport = () => {
     const consolidatedData = {
-      fileName: file?.name,
       timestamp: new Date().toISOString(),
-      analyses: results.map(r => ({
-        type: r.type,
-        data: r.result,
-      })),
+      analyses: documents
+        .filter(d => d.result)
+        .map(d => ({
+          type: d.type,
+          fileName: d.file?.name,
+          data: d.result,
+        })),
     }
 
     const element = document.createElement('a')
-    element.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(consolidatedData, null, 2)))
-    element.setAttribute('download', `informe-consolidado-${Date.now()}.json`)
+    element.setAttribute(
+      'href',
+      'data:text/json;charset=utf-8,' +
+        encodeURIComponent(JSON.stringify(consolidatedData, null, 2))
+    )
+    element.setAttribute(
+      'download',
+      `informe-eett-${Date.now()}.json`
+    )
     element.style.display = 'none'
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
   }
 
+  const hasResults = documents.some(d => d.result !== null)
+  const hasErrors = documents.some(d => d.error)
+  const documentsWithFiles = documents.filter(d => d.file !== null)
+
   return (
     <div className="space-y-6">
-      {!file ? (
-        <UploadZone onFileSelect={handleFileSelect} />
-      ) : (
-        <div className="space-y-6">
-          {/* File info */}
-          <Card className="p-4 border-primary/30 bg-primary/5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Documento seleccionado</p>
-                <p className="font-semibold text-foreground">{file.name}</p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setFile(null)
-                  setResults([])
-                }}
-              >
-                Cambiar archivo
-              </Button>
-            </div>
-          </Card>
+      {/* Header */}
+      <div className="space-y-2">
+        <p className="text-muted-foreground">
+          Carga un documento por separado para cada tipo de análisis. Puedes cargar todos los que necesites o solo los específicos.
+        </p>
+      </div>
 
-          {/* Analysis types grid */}
-          {results.length === 0 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {analysisTypes.map(type => (
-                  <Card key={type} className="p-4">
-                    <p className="font-medium text-foreground capitalize">
-                      {type === 'auto' ? 'Detección Automática' :
-                       type === 'dominio' ? 'Dominio Vigente' :
-                       type === 'compraventa' ? 'Compraventa' :
-                       type === 'sociedades' ? 'Sociedades' :
-                       type === 'poderes' ? 'Poderes' : 'Certificados'}
-                    </p>
-                  </Card>
-                ))}
-              </div>
+      {/* Document Upload Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {documents.map(doc => {
+          const typeInfo = ANALYSIS_TYPES.find(t => t.id === doc.type)
+          if (!typeInfo) return null
 
-              <Button 
-                onClick={startMultipleAnalysis}
-                disabled={isAnalyzing}
-                className="w-full"
-                size="lg"
-              >
-                {isAnalyzing ? 'Analizando...' : 'Iniciar Análisis Múltiple'}
-              </Button>
-            </div>
-          )}
+          return (
+            <Card key={doc.type} className="p-4">
+              <div className="space-y-3">
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {typeInfo.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {typeInfo.description}
+                  </p>
+                </div>
 
-          {/* Results */}
-          {results.length > 0 && (
-            <div className="space-y-6">
-              {/* Download button */}
-              {!results.some(r => r.loading) && (
-                <Button 
-                  onClick={downloadConsolidatedReport}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Descargar Informe Consolidado
-                </Button>
-              )}
-
-              {/* Individual results */}
-              <div className="space-y-4">
-                {results.map((analysisResult, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <div className="p-4 border-b border-border bg-card/50">
-                      <h3 className="font-semibold text-foreground capitalize">
-                        {analysisResult.type === 'auto' ? 'Detección Automática' :
-                         analysisResult.type === 'dominio' ? 'Dominio Vigente' :
-                         analysisResult.type === 'compraventa' ? 'Compraventa' :
-                         analysisResult.type === 'sociedades' ? 'Sociedades' :
-                         analysisResult.type === 'poderes' ? 'Poderes' : 'Certificados'}
-                      </h3>
+                {doc.file ? (
+                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Upload className="h-4 w-4 shrink-0 text-primary" />
+                      <p className="text-sm text-foreground truncate">
+                        {doc.file.name}
+                      </p>
                     </div>
-                    
-                    <div className="p-4">
-                      {analysisResult.loading ? (
-                        <ProcessingStatus />
-                      ) : analysisResult.error ? (
-                        <div className="text-sm text-destructive">
-                          Error: {analysisResult.error}
-                        </div>
-                      ) : analysisResult.result ? (
-                        <AnalysisResults analysis={analysisResult.result} />
-                      ) : null}
+                    <button
+                      onClick={() => handleRemoveFile(doc.type)}
+                      className="ml-2 p-1 hover:bg-primary/20 rounded transition-colors"
+                      disabled={isAnalyzing || doc.loading}
+                    >
+                      <X className="h-4 w-4 text-primary" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) handleFileSelect(doc.type, file)
+                      }}
+                      disabled={isAnalyzing}
+                      className="hidden"
+                    />
+                    <div className="p-3 border-2 border-dashed border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer text-center">
+                      <Upload className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xs text-muted-foreground">
+                        Hacer clic para cargar PDF
+                      </p>
                     </div>
-                  </Card>
-                ))}
+                  </label>
+                )}
               </div>
-            </div>
-          )}
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Action Buttons */}
+      {documentsWithFiles.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            onClick={startAnalysis}
+            disabled={isAnalyzing || documentsWithFiles.length === 0}
+            className="flex-1"
+            size="lg"
+          >
+            {isAnalyzing ? 'Analizando...' : `Analizar ${documentsWithFiles.length} ${documentsWithFiles.length === 1 ? 'documento' : 'documentos'}`}
+          </Button>
+
+          <Button
+            onClick={() => {
+              setDocuments(prev =>
+                prev.map(d => ({
+                  ...d,
+                  file: null,
+                  result: null,
+                  error: undefined,
+                  loading: false,
+                }))
+              )
+            }}
+            variant="outline"
+            disabled={isAnalyzing}
+          >
+            Limpiar todo
+          </Button>
         </div>
+      )}
+
+      {/* Results */}
+      {hasResults && (
+        <div className="space-y-4">
+          {/* Download Button */}
+          {!isAnalyzing && (
+            <Button
+              onClick={downloadConsolidatedReport}
+              variant="outline"
+              className="w-full gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Descargar Informe EETT Consolidado
+            </Button>
+          )}
+
+          {/* Individual Results */}
+          <div className="space-y-4">
+            {documents.map(doc => {
+              if (!doc.file) return null
+
+              const typeInfo = ANALYSIS_TYPES.find(t => t.id === doc.type)
+              if (!typeInfo) return null
+
+              return (
+                <Card key={doc.type} className="overflow-hidden">
+                  <div className="p-4 border-b border-border bg-card/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          {typeInfo.name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {doc.file.name}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {doc.loading ? (
+                      <ProcessingStatus />
+                    ) : doc.error ? (
+                      <div className="p-4 bg-destructive/10 rounded-lg text-sm text-destructive">
+                        {doc.error}
+                      </div>
+                    ) : doc.result ? (
+                      <AnalysisResults analysis={doc.result} />
+                    ) : null}
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!hasResults && documentsWithFiles.length === 0 && (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">
+            Carga documentos en los tipos que necesites analizar para comenzar.
+          </p>
+        </Card>
       )}
     </div>
   )
