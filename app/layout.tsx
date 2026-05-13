@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'LexAnalytica Chile - Análisis de Documentos Jurídicos con IA',
+  title: 'Lexoz - Análisis de Documentos Jurídicos con IA',
   description: 'Plataforma de análisis inteligente de documentos legales chilenos. Inscripciones de dominio, compraventas, mandatos y más.',
   generator: 'v0.app',
   icons: {

@@ -21,7 +21,7 @@ export default function MultiplePage() {
 
             <div className="mx-auto max-w-3xl text-center mb-12">
               <h1 className="text-pretty text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                Análisis Múltiple
+                INFORME EETT
               </h1>
               <p className="mt-4 text-balance text-lg text-muted-foreground">
                 Sube un documento y obten análisis completos desde todas las perspectivas. Descarga un informe consolidado con toda la información.
@@ -37,7 +37,7 @@ export default function MultiplePage() {
         <footer className="border-t border-border bg-card py-8">
           <div className="mx-auto max-w-7xl px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
             <p>
-              LexAnalytica Chile — Plataforma de análisis de documentos jurídicos con IA
+              Lexoz — Plataforma de análisis de documentos jurídicos con IA
             </p>
             <p className="mt-2">
               Los análisis son orientativos y no reemplazan la asesoría legal profesional

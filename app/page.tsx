@@ -15,7 +15,7 @@ export default function Home() {
         <div className="space-y-8 text-center">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-foreground">
-              Elige tu modalidad de análisis
+              MODOS
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Analiza documentos legales chilenos con IA. Selecciona cómo prefieres procesar tus documentos.
@@ -66,7 +66,7 @@ export default function Home() {
                   
                   <div className="space-y-2 text-left">
                     <h2 className="text-2xl font-bold text-foreground">
-                      Análisis Múltiple
+                      INFORME EETT
                     </h2>
                     <p className="text-muted-foreground">
                       Sube un documento y analízalo con todos los tipos disponibles. Obtén un informe consolidado.
