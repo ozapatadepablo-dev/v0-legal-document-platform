@@ -11,6 +11,7 @@ export async function POST(req: Request) {
     }
 
     const apiKey = process.env.GOOGLE_API_KEY
+    console.log('[v0] GOOGLE_API_KEY últimos 10 caracteres:', apiKey?.slice(-10))
 
     const formData = await req.formData()
     const file = formData.get('file') as File
