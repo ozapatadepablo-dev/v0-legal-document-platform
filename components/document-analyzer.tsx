@@ -92,6 +92,8 @@ export function DocumentAnalyzer() {
 
   const isProcessing = stage !== null && stage !== 'completed' && stage !== 'error'
 
+  console.log('[v0] DocumentAnalyzer - isProcessing:', isProcessing, 'stage:', stage, 'analysisType:', analysisType)
+
   return (
     <div className="space-y-8">
       <AnalysisTypeSelector
