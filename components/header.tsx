@@ -1,6 +1,7 @@
 'use client'
 
-import { Scale, FileText } from 'lucide-react'
+import { FileText } from 'lucide-react'
+import Image from 'next/image'
 
 export function Header() {
   return (
@@ -8,9 +9,13 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Scale className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Image 
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-bTlNtZ9dAfyfo1OltAYfNo00kY96B6.png"
+              alt="LexOZ Logo"
+              width={40}
+              height={40}
+              className="h-10 w-10"
+            />
             <div>
               <h1 className="text-lg font-semibold text-foreground">LexOZ</h1>
               <p className="text-xs text-muted-foreground">Análisis Legal</p>
