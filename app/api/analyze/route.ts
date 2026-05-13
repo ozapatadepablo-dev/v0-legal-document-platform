@@ -10,6 +10,10 @@ export async function POST(req: Request) {
       )
     }
 
+    const apiKey = process.env.GOOGLE_API_KEY
+    console.log('[v0] API Key configurada. Primeros 30 caracteres:', apiKey.substring(0, 30))
+    console.log('[v0] Últimos 10 caracteres:', apiKey.substring(apiKey.length - 10))
+
     const formData = await req.formData()
     const file = formData.get('file') as File
     const analysisType = (formData.get('analysisType') as AnalysisType) || 'auto'
