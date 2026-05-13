@@ -14,7 +14,7 @@ export function Header() {
               alt="LexOZ Logo"
               width={40}
               height={40}
-              className="h-10 w-10"
+              className="h-10 w-10 rounded-full"
             />
             <div>
               <h1 className="text-lg font-semibold text-foreground">LexOZ</h1>
