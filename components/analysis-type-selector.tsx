@@ -20,6 +20,7 @@ interface AnalysisTypeSelectorProps {
 }
 
 export function AnalysisTypeSelector({ selected, onSelect, disabled }: AnalysisTypeSelectorProps) {
+  console.log('[v0] AnalysisTypeSelector - selected:', selected, 'disabled:', disabled)
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium text-foreground">
@@ -33,7 +34,10 @@ export function AnalysisTypeSelector({ selected, onSelect, disabled }: AnalysisT
           return (
             <button
               key={type.id}
-              onClick={() => onSelect(type.id)}
+              onClick={() => {
+                console.log('[v0] Button clicked:', type.id, 'current selected:', selected)
+                onSelect(type.id)
+              }}
               disabled={disabled}
               className={cn(
                 "group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all",
