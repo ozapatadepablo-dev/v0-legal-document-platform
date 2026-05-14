@@ -29,7 +29,7 @@ export default function PowersAnalysisPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('analysisType', 'powers')
+      formData.append('analysisType', 'poderes')
 
       const res = await fetch('/api/analyze', {
         method: 'POST',

@@ -29,7 +29,7 @@ export default function ExtractionAnalysisPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('analysisType', 'extraction')
+      formData.append('analysisType', 'extraer_info')
 
       const res = await fetch('/api/analyze', {
         method: 'POST',

@@ -29,7 +29,7 @@ export default function CompanyAnalysisPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('analysisType', 'company')
+      formData.append('analysisType', 'sociedades')
 
       const res = await fetch('/api/analyze', {
         method: 'POST',

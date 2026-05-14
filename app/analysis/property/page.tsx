@@ -29,7 +29,7 @@ export default function PropertyAnalysisPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('analysisType', 'property')
+      formData.append('analysisType', 'dominio_vigente')
 
       const res = await fetch('/api/analyze', {
         method: 'POST',

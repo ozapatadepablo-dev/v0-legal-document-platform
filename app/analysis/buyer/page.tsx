@@ -29,7 +29,7 @@ export default function BuyerAnalysisPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('analysisType', 'buyer')
+      formData.append('analysisType', 'compraventa')
 
       const res = await fetch('/api/analyze', {
         method: 'POST',
