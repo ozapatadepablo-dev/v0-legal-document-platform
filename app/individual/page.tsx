@@ -1,201 +1,189 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 
-export default function IndividualPage() {
-  const [selectedType, setSelectedType] = useState('property')
-  const [loading, setLoading] = useState(false)
+export default function IndividualAnalysisPage() {
+  const [analysisType, setAnalysisType] = useState('auto')
+  const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-  const inputRef = useRef(null)
+  const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const types = [
-    { id: 'property', label: 'Dominio Vigente' },
-    { id: 'buyer', label: 'Estudio Compraventa' },
-    { id: 'company', label: 'Estudio Sociedades' },
-    { id: 'powers', label: 'Estudio Poderes' },
-    { id: 'extraction', label: 'Extraer Información' },
+  const analysisTypes = [
+    { id: 'auto', label: 'Detección Automática', desc: 'El sistema detecta...' },
+    { id: 'property', label: 'Dominio Vigente', desc: 'Transcripción de...' },
+    { id: 'buyer', label: 'Estudio Compraventa', desc: 'Análisis de escrituras de...' },
+    { id: 'company', label: 'Estudio Sociedades', desc: 'Informe de SA, SpA...' },
+    { id: 'powers', label: 'Estudio Poderes', desc: 'Análisis de poderes y...' },
+    { id: 'extraction', label: 'Extraer Información', desc: 'Extracción de datos de...' },
   ]
 
-  const processFile = async (file) => {
+  const handleFileSelect = (file: File) => {
     if (file.type !== 'application/pdf') {
       setError('Solo se aceptan archivos PDF')
       return
     }
+    processFile(file)
+  }
 
-    setLoading(true)
-    setError('')
+  const processFile = async (file: File) => {
+    setIsProcessing(true)
+    setError(null)
     setResult(null)
 
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('analysisType', selectedType)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('analysisType', analysisType)
 
-      const res = await fetch('/api/analyze', { method: 'POST', body: fd })
-      const data = await res.json()
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (!res.ok) {
-        setError(data.error || 'Error al analizar')
-        return
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al analizar el documento')
       }
 
       setResult(data)
-    } catch (e) {
-      setError('Error de conexión')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
-      setLoading(false)
+      setIsProcessing(false)
     }
   }
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFileSelect(file)
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFileSelect(file)
+  }
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
-      <button
-        onClick={() => {
-          console.log('[v0] Navigate home')
-          window.location.href = '/'
-        }}
-        style={{ marginBottom: '30px', padding: '8px 16px', backgroundColor: '#0066ff', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-      >
-        ← Volver
-      </button>
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="container mx-auto px-4 py-12">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-8 transition-colors"
+        >
+          ← Volver al inicio
+        </Link>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '20px', textAlign: 'center' }}>
-          ANALISIS INDIVIDUAL
-        </h1>
-        <p style={{ textAlign: 'center', marginBottom: '40px', color: '#aaa' }}>
-          Sube un documento legal y selecciona el tipo de análisis específico que deseas realizar.
-        </p>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            ANALISIS INDIVIDUAL
+          </h1>
+          <p className="text-lg text-gray-400">
+            Sube un documento legal y selecciona el tipo de análisis específico que deseas realizar.
+          </p>
+        </div>
 
-        {/* Selector de tipo */}
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Tipo de Análisis</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-            {types.map((t) => (
+        <div className="mb-12">
+          <h2 className="text-xl font-bold text-white mb-6">Tipo de Análisis</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {analysisTypes.map((type) => (
               <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  console.log('[v0] Type selected:', t.id)
-                  setSelectedType(t.id)
-                }}
-                style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  border: selectedType === t.id ? '2px solid #0066ff' : '2px solid #333',
-                  backgroundColor: selectedType === t.id ? '#003399' : '#1a1a1a',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+                key={type.id}
+                onClick={() => setAnalysisType(type.id)}
+                className={`p-4 rounded-xl border-2 transition-all text-center ${
+                  analysisType === type.id
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : 'border-gray-600 bg-slate-700/50 hover:border-gray-500'
+                } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                disabled={isProcessing}
               >
-                {t.label}
+                <div className="font-semibold text-white text-sm">{type.label}</div>
+                <div className="text-xs text-gray-400 mt-1">{type.desc}</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Upload area */}
         <div
-          onClick={() => {
-            console.log('[v0] Upload area clicked')
-            inputRef.current?.click()
-          }}
-          onDrop={(e) => {
-            e.preventDefault()
-            console.log('[v0] File dropped')
-            const f = e.dataTransfer.files?.[0]
-            if (f) processFile(f)
-          }}
+          onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          style={{
-            border: '2px dashed #666',
-            borderRadius: '8px',
-            padding: '48px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            marginBottom: '40px',
-            backgroundColor: '#111',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#0066ff'
-            e.currentTarget.style.backgroundColor = '#1a2633'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#666'
-            e.currentTarget.style.backgroundColor = '#111'
-          }}
+          onClick={() => fileInputRef.current?.click()}
+          className="border-2 border-dashed border-gray-500 rounded-xl p-12 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-700/30 transition-all mb-8"
         >
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📄</div>
-          <p style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Arrastra tu PDF aquí</p>
-          <p style={{ fontSize: '14px', color: '#999' }}>o haz clic para seleccionar</p>
           <input
-            ref={inputRef}
+            ref={fileInputRef}
             type="file"
             accept=".pdf"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) {
-                console.log('[v0] File selected:', f.name)
-                processFile(f)
-              }
-            }}
-            style={{ display: 'none' }}
+            onChange={handleInputChange}
+            className="hidden"
           />
+          <div className="text-5xl mb-4">📤</div>
+          <p className="text-xl font-bold text-white mb-2">Arrastra tu documento PDF aquí</p>
+          <p className="text-gray-400">o haz clic para seleccionar un archivo</p>
+          <p className="text-sm text-gray-500 mt-4">PDF hasta 100MB</p>
         </div>
 
-        {loading && (
-          <div style={{ backgroundColor: '#003300', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold' }}>
-            Analizando documento...
+        {isProcessing && (
+          <div className="bg-blue-500/20 border border-blue-500 rounded-lg p-4 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-blue-300 font-semibold">Analizando documento...</p>
+            </div>
           </div>
         )}
 
         {error && (
-          <div style={{ backgroundColor: '#330000', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontWeight: 'bold', color: '#ff6666' }}>
-            Error: {error}
+          <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-8">
+            <p className="text-red-300 font-semibold">Error: {error}</p>
           </div>
         )}
 
         {result && (
-          <div style={{ backgroundColor: '#001a00', padding: '24px', borderRadius: '8px', space: '16px' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '16px', color: '#66ff66' }}>Análisis completado</p>
+          <div className="space-y-6">
+            <div className="bg-green-500/20 border border-green-500 rounded-lg p-4">
+              <p className="text-green-300 font-semibold">✓ Análisis completado exitosamente</p>
+            </div>
+
             <button
               onClick={() => {
                 setResult(null)
-                setError('')
+                setError(null)
               }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#0066ff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                marginBottom: '20px'
-              }}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
             >
-              Nuevo análisis
+              Analizar otro documento
             </button>
-            <div style={{
-              backgroundColor: '#0a0a0a',
-              padding: '16px',
-              borderRadius: '4px',
-              fontSize: '13px',
-              maxHeight: '400px',
-              overflow: 'auto',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
-            }}>
-              {result.informe}
+
+            <div className="bg-slate-700/50 border border-gray-600 rounded-lg p-6 space-y-4">
+              <div>
+                <h3 className="text-white font-bold mb-2">Resumen</h3>
+                <p className="text-gray-300">{result.summary}</p>
+              </div>
+
+              <div>
+                <h3 className="text-white font-bold mb-2">Informe</h3>
+                <pre className="bg-slate-900 p-4 rounded text-gray-300 text-sm max-h-96 overflow-auto whitespace-pre-wrap">
+                  {result.informe}
+                </pre>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-400">Tipo de Documento</p>
+                  <p className="text-white font-semibold">{result.documentType}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Confianza</p>
+                  <p className="text-white font-semibold">{(result.confidence * 100).toFixed(0)}%</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </main>
   )
 }
