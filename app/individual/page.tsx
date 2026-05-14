@@ -10,8 +10,9 @@ import { FileText, Building2, Home, Users, FileSearch, Upload } from 'lucide-rea
 export default function IndividualPage() {
   const [analysisType, setAnalysisType] = useState('property')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
+  const [results, setResults] = useState([])
   const [error, setError] = useState(null)
+  const [currentFile, setCurrentFile] = useState(null)
   const fileInputRef = useRef(null)
 
   const types = [
@@ -30,8 +31,8 @@ export default function IndividualPage() {
     }
 
     setLoading(true)
+    setCurrentFile(file.name)
     setError(null)
-    setResult(null)
 
     try {
       const formData = new FormData()
@@ -45,11 +46,13 @@ export default function IndividualPage() {
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error')
-      setResult(data)
+      
+      setResults(prev => [...prev, { fileName: file.name, ...data }])
     } catch (err) {
       setError(err.message || 'Error desconocido')
     } finally {
       setLoading(false)
+      setCurrentFile(null)
     }
   }
 
@@ -135,7 +138,7 @@ export default function IndividualPage() {
           {/* Estados */}
           {loading && (
             <Card className="p-4 border-primary/50 bg-primary/5">
-              <p className="text-primary font-semibold">Analizando documento...</p>
+              <p className="text-primary font-semibold">Analizando: {currentFile}</p>
             </Card>
           )}
 
@@ -145,24 +148,39 @@ export default function IndividualPage() {
             </Card>
           )}
 
-          {result && (
+          {results.length > 0 && (
             <div className="space-y-6">
-              <Card className="p-4 border-green-500/50 bg-green-500/5">
-                <p className="text-green-500 font-semibold">Análisis completado</p>
-              </Card>
-              
-              <Button onClick={() => setResult(null)}>
-                Nuevo análisis
-              </Button>
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-foreground">Análisis Completados ({results.length})</h2>
+                <Button onClick={() => setResults([])}>
+                  Limpiar todos
+                </Button>
+              </div>
 
-              <Card className="p-6 space-y-4">
-                <div>
-                  <h3 className="text-foreground font-bold mb-2">Informe</h3>
-                  <pre className="bg-muted p-4 rounded text-foreground text-sm max-h-96 overflow-auto whitespace-pre-wrap">
-                    {result.informe}
-                  </pre>
-                </div>
-              </Card>
+              {results.map((result, idx) => (
+                <Card key={idx} className="p-6 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">{result.fileName}</h3>
+                      <p className="text-sm text-muted-foreground">Tipo: {result.analysisType}</p>
+                    </div>
+                    <Button 
+                      onClick={() => setResults(results.filter((_, i) => i !== idx))}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <h4 className="text-foreground font-bold mb-2">Informe</h4>
+                    <pre className="bg-muted p-4 rounded text-foreground text-sm max-h-96 overflow-auto whitespace-pre-wrap">
+                      {result.informe}
+                    </pre>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </div>
