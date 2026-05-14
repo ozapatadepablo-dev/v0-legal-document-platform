@@ -5,17 +5,16 @@ import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Building2, Home, Users, FileSearch, Upload, Search } from 'lucide-react'
+import { FileText, Building2, Home, Users, FileSearch, Upload } from 'lucide-react'
 
 export default function IndividualPage() {
-  const [analysisType, setAnalysisType] = useState('auto')
+  const [analysisType, setAnalysisType] = useState('property')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const fileInputRef = useRef(null)
 
   const types = [
-    { id: 'auto', label: 'Detección Automática', icon: Search },
     { id: 'property', label: 'Dominio Vigente', icon: FileText },
     { id: 'buyer', label: 'Estudio Compraventa', icon: Home },
     { id: 'company', label: 'Estudio Sociedades', icon: Building2 },
