@@ -1,18 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 
 export default function IndividualPage() {
   const [selectedType, setSelectedType] = useState('property')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
-  const [mounted, setMounted] = useState(false)
   const inputRef = useRef(null)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const types = [
     { id: 'property', label: 'Dominio Vigente' },
@@ -77,7 +72,7 @@ export default function IndividualPage() {
         <div style={{ marginBottom: '40px' }}>
           <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Tipo de Análisis</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-            {mounted && types.map((t) => (
+            {types.map((t) => (
               <button
                 key={t.id}
                 type="button"
