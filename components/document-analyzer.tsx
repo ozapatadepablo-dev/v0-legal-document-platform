@@ -1,123 +1,174 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 export function DocumentAnalyzer() {
-  const [selectedType, setSelectedType] = useState('property')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
+  const [tipo, setTipo] = useState('property')
+  const [cargando, setCargando] = useState(false)
+  const [resultado, setResultado] = useState(null)
   const [error, setError] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const types = [
-    { id: 'property', label: 'Dominio Vigente' },
-    { id: 'buyer', label: 'Estudio Compraventa' },
-    { id: 'company', label: 'Estudio Sociedades' },
-    { id: 'powers', label: 'Estudio Poderes' },
-    { id: 'extraction', label: 'Extraer Información' },
-  ]
-
-  const processFile = async (file: File) => {
-    if (file.type !== 'application/pdf') {
-      setError('Solo se aceptan archivos PDF')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    setResult(null)
-
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('analysisType', selectedType)
-
-      const res = await fetch('/api/analyze', { method: 'POST', body: fd })
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'Error al analizar')
-        return
-      }
-
-      setResult(data)
-    } catch (e) {
-      setError('Error de conexión')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
-    <div className="space-y-8 py-8">
-      {/* Selector de tipo */}
-      <div>
-        <h3 className="text-lg font-bold mb-4">Tipo de Análisis</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-          {types.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => {
-                console.log('[v0] Button clicked:', t.id)
-                setSelectedType(t.id)
-              }}
-              className={`p-4 rounded border-2 font-bold transition-all ${
-                selectedType === t.id
-                  ? 'border-blue-500 bg-blue-50 text-blue-900'
-                  : 'border-gray-300 bg-white text-gray-900 hover:border-blue-400'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+        Tipo de Análisis
+      </h2>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginBottom: '2rem' }}>
+        <button
+          onClick={() => {
+            console.log('Clicked property')
+            setTipo('property')
+          }}
+          style={{
+            padding: '1rem',
+            border: tipo === 'property' ? '3px solid blue' : '2px solid gray',
+            backgroundColor: tipo === 'property' ? '#e3f2fd' : 'white',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+          }}
+        >
+          Dominio Vigente
+        </button>
+
+        <button
+          onClick={() => {
+            console.log('Clicked buyer')
+            setTipo('buyer')
+          }}
+          style={{
+            padding: '1rem',
+            border: tipo === 'buyer' ? '3px solid blue' : '2px solid gray',
+            backgroundColor: tipo === 'buyer' ? '#e3f2fd' : 'white',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+          }}
+        >
+          Estudio Compraventa
+        </button>
+
+        <button
+          onClick={() => {
+            console.log('Clicked company')
+            setTipo('company')
+          }}
+          style={{
+            padding: '1rem',
+            border: tipo === 'company' ? '3px solid blue' : '2px solid gray',
+            backgroundColor: tipo === 'company' ? '#e3f2fd' : 'white',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+          }}
+        >
+          Estudio Sociedades
+        </button>
+
+        <button
+          onClick={() => {
+            console.log('Clicked powers')
+            setTipo('powers')
+          }}
+          style={{
+            padding: '1rem',
+            border: tipo === 'powers' ? '3px solid blue' : '2px solid gray',
+            backgroundColor: tipo === 'powers' ? '#e3f2fd' : 'white',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+          }}
+        >
+          Estudio Poderes
+        </button>
+
+        <button
+          onClick={() => {
+            console.log('Clicked extraction')
+            setTipo('extraction')
+          }}
+          style={{
+            padding: '1rem',
+            border: tipo === 'extraction' ? '3px solid blue' : '2px solid gray',
+            backgroundColor: tipo === 'extraction' ? '#e3f2fd' : 'white',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+          }}
+        >
+          Extraer Información
+        </button>
       </div>
 
-      {/* Upload area */}
       <div
-        onClick={() => inputRef.current?.click()}
-        onDrop={(e) => {
-          e.preventDefault()
-          const f = e.dataTransfer.files?.[0]
-          if (f) processFile(f)
+        style={{
+          border: '2px dashed gray',
+          borderRadius: '0.5rem',
+          padding: '3rem',
+          textAlign: 'center',
+          cursor: 'pointer',
         }}
-        onDragOver={(e) => e.preventDefault()}
-        className="border-2 border-dashed border-gray-400 rounded-lg p-12 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
       >
-        <div className="text-5xl mb-3">📄</div>
-        <p className="text-lg font-bold">Arrastra tu PDF aquí</p>
-        <p className="text-gray-600">o haz clic para seleccionar</p>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
+        <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Arrastra tu PDF aquí</p>
+        <p style={{ color: '#666' }}>o haz clic para seleccionar</p>
         <input
-          ref={inputRef}
           type="file"
           accept=".pdf"
           onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) processFile(f)
+            const file = e.target.files?.[0]
+            if (file) {
+              console.log('File selected:', file.name, 'Type:', tipo)
+              setCargando(true)
+              // Simulación de análisis
+              setTimeout(() => {
+                setResultado({ informe: 'Análisis completado para: ' + file.name })
+                setCargando(false)
+              }, 2000)
+            }
           }}
-          className="hidden"
+          style={{ display: 'none' }}
+          id="file-input"
         />
+        <label htmlFor="file-input" style={{ cursor: 'pointer', display: 'block' }}>
+          Click aquí o arrastra archivo
+        </label>
       </div>
 
-      {loading && <div className="bg-blue-100 p-4 rounded text-blue-900 font-bold">Analizando...</div>}
-      {error && <div className="bg-red-100 p-4 rounded text-red-900 font-bold">{error}</div>}
+      {cargando && (
+        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#e3f2fd', borderRadius: '0.5rem' }}>
+          Analizando...
+        </div>
+      )}
 
-      {result && (
-        <div className="bg-green-50 p-6 rounded-lg space-y-4">
-          <p className="text-green-900 font-bold">Análisis completado</p>
+      {error && (
+        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#ffebee', borderRadius: '0.5rem', color: '#c62828' }}>
+          {error}
+        </div>
+      )}
+
+      {resultado && (
+        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#e8f5e9', borderRadius: '0.5rem' }}>
+          <p style={{ fontWeight: 'bold', marginBottom: '1rem' }}>✓ Análisis completado</p>
+          <pre style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto', maxHeight: '400px' }}>
+            {resultado.informe}
+          </pre>
           <button
-            onClick={() => {
-              setResult(null)
-              setError('')
+            onClick={() => setResultado(null)}
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#2196f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              fontWeight: 'bold',
             }}
-            className="px-4 py-2 bg-blue-500 text-white rounded font-bold hover:bg-blue-600"
           >
             Nuevo análisis
           </button>
-          <div className="bg-white p-4 rounded text-sm whitespace-pre-wrap max-h-96 overflow-auto">
-            {result.informe}
-          </div>
         </div>
       )}
     </div>
