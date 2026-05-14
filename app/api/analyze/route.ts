@@ -120,7 +120,7 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
 
     console.log('[v0] Creando cliente Gemini...')
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
     console.log('[v0] Enviando petición a Gemini...')
     const response = await model.generateContent({
