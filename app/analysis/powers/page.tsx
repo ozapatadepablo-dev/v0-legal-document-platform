@@ -11,24 +11,35 @@ export default function PowersAnalysisPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [uploadedFile, setUploadedFile] = useState(null)
+  const [uploadedFiles, setUploadedFiles] = useState([])
   const fileInputRef = useRef(null)
 
-  const handleFile = async (file) => {
+  const handleFile = (file) => {
     if (!file) return
     if (file.type !== 'application/pdf') {
       setError('Solo se aceptan archivos PDF')
       return
     }
 
+    setError(null)
+    setUploadedFiles(prev => [...prev, file])
+  }
+
+  const handleAnalyze = async () => {
+    if (uploadedFiles.length === 0) {
+      setError('Por favor carga al menos un documento')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setResult(null)
-    setUploadedFile(file.name)
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      uploadedFiles.forEach(file => {
+        formData.append('files', file)
+      })
       formData.append('analysisType', 'poderes')
 
       const res = await fetch('/api/analyze', {
@@ -60,44 +71,110 @@ export default function PowersAnalysisPage() {
           <div className="text-center space-y-4">
             <div className="flex justify-center mb-4">
               <div className="p-4 bg-primary/10 rounded-lg">
-                <Users className="h-12 w-12 text-primary" />
+                <FileText className="h-12 w-12 text-primary" />
               </div>
             </div>
             <h1 className="text-4xl font-bold text-foreground">
               Estudio Poderes
             </h1>
             <p className="text-lg text-muted-foreground">
-              Carga un documento de poderes para su análisis y verificación de facultades.
+              Carga documentos de poderes notariales para análisis de facultades y limitaciones.
             </p>
           </div>
 
+          {/* Área de carga */}
           {!result && (
-            <Card
-              onClick={() => fileInputRef.current?.click()}
-              onDrop={(e) => {
-                e.preventDefault()
-                handleFile(e.dataTransfer.files[0])
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              className="p-12 text-center cursor-pointer hover:border-primary/50 transition-all"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                onChange={(e) => handleFile(e.target.files?.[0])}
-                className="hidden"
-              />
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-primary/10 rounded-full">
-                  <Upload className="h-10 w-10 text-primary" />
+            <>
+              <Card
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  handleFile(e.dataTransfer.files[0])
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                className="p-12 text-center cursor-pointer hover:border-primary/50 transition-all"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || [])
+                    files.forEach(file => handleFile(file))
+                  }}
+                  className="hidden"
+                />
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-primary/10 rounded-full">
+                    <Upload className="h-10 w-10 text-primary" />
+                  </div>
                 </div>
-              </div>
-              <p className="text-xl font-bold text-foreground mb-2">Arrastra tu PDF aquí</p>
-              <p className="text-muted-foreground">o haz clic para seleccionar</p>
-            </Card>
+                <p className="text-xl font-bold text-foreground mb-2">Arrastra tus PDFs aquí</p>
+                <p className="text-muted-foreground">o haz clic para seleccionar</p>
+              </Card>
+
+              {uploadedFiles.length > 0 && (
+                <Card className="p-4 space-y-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-foreground">Documentos cargados ({uploadedFiles.length})</h3>
+                    <Button
+                      onClick={() => setUploadedFiles([])}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {uploadedFiles.map((file, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                        <p className="text-sm font-medium text-foreground">{file.name}</p>
+                        <Button
+                          onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== idx))}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              <Button
+                onClick={handleAnalyze}
+                disabled={uploadedFiles.length === 0 || loading}
+                className="w-full"
+                size="lg"
+              >
+                {loading ? 'Analizando...' : 'Analizar Documentos'}
+              </Button>
+
+              {error && (
+                <Card className="p-4 border-destructive/50 bg-destructive/5">
+                  <p className="text-destructive font-semibold mb-3">{error}</p>
+                  <Button onClick={() => setError(null)}>Intentar de nuevo</Button>
+                </Card>
+              )}
+
+              {loading && (
+                <Card className="p-6 space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-primary font-semibold">Analizando {uploadedFiles.length} documento(s)...</p>
+                    <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full animate-pulse w-full"></div>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">Procesando documento...</p>
+                </Card>
+              )}
+            </>
           )}
 
+          {/* Progreso */}
           {loading && (
             <Card className="p-6 space-y-4">
               <div className="flex items-center justify-between mb-4">
@@ -111,6 +188,7 @@ export default function PowersAnalysisPage() {
             </Card>
           )}
 
+          {/* Error */}
           {error && (
             <Card className="p-4 border-destructive/50 bg-destructive/5">
               <p className="text-destructive font-semibold mb-3">{error}</p>
@@ -118,6 +196,7 @@ export default function PowersAnalysisPage() {
             </Card>
           )}
 
+          {/* Resultado */}
           {result && (
             <div className="space-y-6">
               <Card className="p-4 border-green-500/50 bg-green-500/5">
@@ -140,11 +219,11 @@ export default function PowersAnalysisPage() {
                   onClick={() => {
                     setResult(null)
                     setError(null)
-                    setUploadedFile(null)
+                    setUploadedFiles([])
                   }}
                   className="flex-1"
                 >
-                  Analizar otro documento
+                  Analizar otros documentos
                 </Button>
                 <Button 
                   onClick={() => setResult(null)}
