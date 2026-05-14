@@ -60,7 +60,7 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
             {
               type: 'file',
               data: base64Data,
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             },
             {
               type: 'text',
