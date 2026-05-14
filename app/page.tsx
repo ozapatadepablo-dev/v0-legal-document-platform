@@ -18,7 +18,7 @@ export default function Home() {
               MODOS
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Analiza documentos legales chilenos con IA. Selecciona cómo prefieres procesar tus documentos.
+              Analiza documentos legales. Selecciona cómo prefieres procesar tus documentos.
             </p>
           </div>
 
