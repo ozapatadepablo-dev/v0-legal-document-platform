@@ -75,7 +75,7 @@ export default function IndividualPage() {
           {/* Botones de tipo de análisis */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">Tipo de Análisis</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {types.map((type) => {
                 const Icon = type.icon
                 return (
