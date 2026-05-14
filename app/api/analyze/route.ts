@@ -1,7 +1,6 @@
 import { generateText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
-import pdfParse from 'pdf-parse'
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_API_KEY,
@@ -19,21 +18,6 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    
-    // Extraer texto del PDF
-    let pdfText = ''
-    try {
-      const pdfData = await pdfParse(buffer)
-      pdfText = pdfData.text
-    } catch (pdfError) {
-      console.error('[v0] Error parsing PDF:', pdfError)
-      return Response.json({ error: 'No se pudo procesar el archivo PDF' }, { status: 400 })
-    }
-
-    if (!pdfText.trim()) {
-      return Response.json({ error: 'El PDF no contiene texto legible' }, { status: 400 })
-    }
-
     const base64Data = buffer.toString('base64')
 
     const specificPrompt = getPromptForType(analysisType)
@@ -69,7 +53,12 @@ Después del informe, agrega esta sección JSON con datos extraídos:
           content: [
             {
               type: 'text',
-              text: `DOCUMENTO A ANALIZAR:\n\n${pdfText}\n\n---\n\n${userPrompt}`,
+              text: userPrompt,
+            },
+            {
+              type: 'file',
+              data: base64Data,
+              mediaType: 'application/pdf',
             },
           ],
         },
