@@ -1,4 +1,5 @@
 import { generateText } from 'ai'
+import { google } from '@ai-sdk/google'
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
 
 export async function POST(req: Request) {
@@ -50,7 +51,7 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
       : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno, extrayendo toda la información según el formato JSON requerido.`
 
     const result = await generateText({
-      model: 'google/gemini-3-flash',
+      model: google('gemini-2.0-flash'),
       system: systemPrompt,
       messages: [
         {
@@ -61,8 +62,9 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
               text: userPrompt,
             },
             {
-              type: 'image',
-              image: `data:application/pdf;base64,${base64Data}`,
+              type: 'file',
+              data: buffer,
+              mimeType: 'application/pdf',
             },
           ],
         },
