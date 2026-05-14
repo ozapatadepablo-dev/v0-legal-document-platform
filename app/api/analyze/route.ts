@@ -1,6 +1,10 @@
 import { generateText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { getPromptForType, type AnalysisType } from '@/lib/legal-prompts'
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_API_KEY,
+})
 
 export async function POST(req: Request) {
   try {
