@@ -58,13 +58,13 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
           role: 'user',
           content: [
             {
-              type: 'text',
-              text: userPrompt,
+              type: 'file',
+              data: base64Data,
+              mimeType: 'application/pdf',
             },
             {
-              type: 'file',
-              data: buffer,
-              mimeType: 'application/pdf',
+              type: 'text',
+              text: userPrompt,
             },
           ],
         },
