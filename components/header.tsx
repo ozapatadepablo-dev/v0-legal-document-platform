@@ -17,7 +17,12 @@ export function Header() {
               className="h-10 w-10 rounded-full"
             />
             <div>
-              <h1 className="text-lg font-semibold text-foreground">LexOZ</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-foreground">LexOZ</h1>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  ALFA
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">Análisis Legal</p>
             </div>
           </div>
