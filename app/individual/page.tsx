@@ -1,60 +1,49 @@
 'use client'
 
-import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Building2, Home, Users, FileSearch, Upload } from 'lucide-react'
+import { FileText, Building2, Home, Users, FileSearch, ArrowRight } from 'lucide-react'
 
 export default function IndividualPage() {
-  const [analysisType, setAnalysisType] = useState('property')
-  const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState([])
-  const [error, setError] = useState(null)
-  const [currentFile, setCurrentFile] = useState(null)
-  const fileInputRef = useRef(null)
-
   const types = [
-    { id: 'property', label: 'Dominio Vigente', icon: FileText },
-    { id: 'buyer', label: 'Estudio Compraventa', icon: Home },
-    { id: 'company', label: 'Estudio Sociedades', icon: Building2 },
-    { id: 'powers', label: 'Estudio Poderes', icon: Users },
-    { id: 'extraction', label: 'Extraer Información', icon: FileSearch },
+    { 
+      id: 'property', 
+      label: 'Dominio Vigente', 
+      icon: FileText,
+      description: 'Transcripción de inscripciones de dominio vigentes',
+      path: '/analysis/property'
+    },
+    { 
+      id: 'buyer', 
+      label: 'Estudio Compraventa', 
+      icon: Home,
+      description: 'Análisis de escrituras de compraventa inmobiliaria',
+      path: '/analysis/buyer'
+    },
+    { 
+      id: 'company', 
+      label: 'Estudio Sociedades', 
+      icon: Building2,
+      description: 'Informe de constitución y poderes de sociedades',
+      path: '/analysis/company'
+    },
+    { 
+      id: 'powers', 
+      label: 'Estudio Poderes', 
+      icon: Users,
+      description: 'Análisis de poderes y facultades otorgadas',
+      path: '/analysis/powers'
+    },
+    { 
+      id: 'extraction', 
+      label: 'Extraer Información', 
+      icon: FileSearch,
+      description: 'Extracción de datos relevantes del documento',
+      path: '/analysis/extraction'
+    },
   ]
-
-  const handleFile = async (file) => {
-    if (!file) return
-    if (file.type !== 'application/pdf') {
-      setError('Solo se aceptan archivos PDF')
-      return
-    }
-
-    setLoading(true)
-    setCurrentFile(file.name)
-    setError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('analysisType', analysisType)
-
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error')
-      
-      setResults(prev => [...prev, { fileName: file.name, ...data }])
-    } catch (err) {
-      setError(err.message || 'Error desconocido')
-    } finally {
-      setLoading(false)
-      setCurrentFile(null)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -65,124 +54,48 @@ export default function IndividualPage() {
           ← Volver al inicio
         </Link>
 
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold text-foreground">
               ANÁLISIS INDIVIDUAL
             </h1>
             <p className="text-lg text-muted-foreground">
-              Sube un documento legal y selecciona el tipo de análisis específico que deseas realizar.
+              Selecciona el tipo de análisis que deseas realizar sobre tu documento legal.
             </p>
           </div>
 
-          {/* Botones de tipo de análisis */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-foreground">Tipo de Análisis</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {types.map((type) => {
-                const Icon = type.icon
-                return (
-                  <button
-                    key={type.id}
-                    onClick={() => setAnalysisType(type.id)}
-                    className={`p-4 rounded-lg border-2 transition-all text-center ${
-                      analysisType === type.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/50'
-                    } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    disabled={loading}
-                  >
-                    <div className="flex justify-center mb-2">
-                      <Icon className={`h-6 w-6 ${analysisType === type.id ? 'text-primary' : 'text-muted-foreground'}`} />
+          {/* Grid de tipos de análisis */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {types.map((type) => {
+              const Icon = type.icon
+              return (
+                <Link key={type.id} href={type.path}>
+                  <Card className="h-full p-6 hover:border-primary/50 transition-all cursor-pointer group">
+                    <div className="space-y-4 h-full flex flex-col">
+                      <div className="flex justify-center">
+                        <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                          <Icon className="h-8 w-8 text-primary" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <h3 className="font-bold text-foreground text-center mb-2">
+                          {type.label}
+                        </h3>
+                        <p className="text-xs text-muted-foreground text-center">
+                          {type.description}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-center pt-2">
+                        <ArrowRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
-                    <div className={`text-sm font-semibold ${analysisType === type.id ? 'text-primary' : 'text-foreground'}`}>
-                      {type.label}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+                  </Card>
+                </Link>
+              )
+            })}
           </div>
-
-          {/* Área de carga */}
-          <Card
-            onClick={() => fileInputRef.current?.click()}
-            onDrop={(e) => {
-              e.preventDefault()
-              const files = Array.from(e.dataTransfer.files)
-              files.forEach(file => handleFile(file))
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            className="p-12 text-center cursor-pointer hover:border-primary/50 transition-all"
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              multiple
-              onChange={(e) => {
-                const files = Array.from(e.target.files || [])
-                files.forEach(file => handleFile(file))
-              }}
-              className="hidden"
-            />
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-primary/10 rounded-full">
-                <Upload className="h-10 w-10 text-primary" />
-              </div>
-            </div>
-            <p className="text-xl font-bold text-foreground mb-2">Arrastra tus PDF aquí</p>
-            <p className="text-muted-foreground">o haz clic para seleccionar</p>
-          </Card>
-
-          {/* Estados */}
-          {loading && (
-            <Card className="p-4 border-primary/50 bg-primary/5">
-              <p className="text-primary font-semibold">Analizando: {currentFile}</p>
-            </Card>
-          )}
-
-          {error && (
-            <Card className="p-4 border-destructive/50 bg-destructive/5">
-              <p className="text-destructive font-semibold">Error: {error}</p>
-            </Card>
-          )}
-
-          {results.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-foreground">Análisis Completados ({results.length})</h2>
-                <Button onClick={() => setResults([])}>
-                  Limpiar todos
-                </Button>
-              </div>
-
-              {results.map((result, idx) => (
-                <Card key={idx} className="p-6 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">{result.fileName}</h3>
-                      <p className="text-sm text-muted-foreground">Tipo: {result.analysisType}</p>
-                    </div>
-                    <Button 
-                      onClick={() => setResults(results.filter((_, i) => i !== idx))}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    <h4 className="text-foreground font-bold mb-2">Informe</h4>
-                    <pre className="bg-muted p-4 rounded text-foreground text-sm max-h-96 overflow-auto whitespace-pre-wrap">
-                      {result.informe}
-                    </pre>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
         </div>
       </main>
     </div>
