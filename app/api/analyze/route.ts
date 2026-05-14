@@ -24,25 +24,9 @@ export async function POST(req: Request) {
 
     const systemPrompt = `${specificPrompt}
 
-INSTRUCCIONES DE SALIDA:
-- Responde en español chileno legal
-- Mantén exactamente la estructura y formato solicitado en el análisis
-- Si información falta, indica "No consta"
-- No inventes datos
-- Sé exhaustivo en la extracción de información
+IMPORTANTE: Sigue EXACTAMENTE el formato y estructura especificada arriba. No agregues títulos de secciones ni estructures de forma diferente. Responde en español chileno legal.`
 
-Después del informe, agrega esta sección JSON con datos extraídos:
-
----JSON-METADATA---
-{
-  "alertas": ["lista de alertas detectadas"],
-  "observaciones": ["observaciones adicionales"]
-}
----FIN-JSON---`
-
-    const userPrompt = analysisType === 'auto'
-      ? `Analiza el siguiente documento legal chileno según las instrucciones proporcionadas en el sistema. Genera un informe completo.`
-      : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno según las instrucciones proporcionadas. Genera un informe completo y detallado.`
+    const userPrompt = `Analiza el siguiente documento legal chileno según las instrucciones especificadas. Responde SOLO con el informe, sin títulos adicionales ni explicaciones.`
 
     const result = await generateText({
       model: google('gemini-2.5-flash'),
@@ -68,27 +52,19 @@ Después del informe, agrega esta sección JSON con datos extraídos:
     const responseText = result.text
 
     try {
-      const jsonMatch = responseText.match(/---JSON-METADATA---([\s\S]*?)---FIN-JSON---/)
-      const metadata = jsonMatch ? JSON.parse(jsonMatch[1]) : { alertas: [], observaciones: [] }
-      
-      // Extraer el informe (todo antes del JSON)
-      const informeText = jsonMatch 
-        ? responseText.substring(0, responseText.indexOf('---JSON-METADATA---')).trim()
-        : responseText
-
       return Response.json({
         analysisType,
         documentType: `Análisis de ${analysisType}`,
-        summary: informeText.substring(0, 300),
-        informe: informeText,
+        summary: responseText.substring(0, 300),
+        informe: responseText,
         confidence: 0.9,
         extractedData: {
           tipoDocumento: `Análisis de ${analysisType}`,
           partes: [],
           clausulas: [],
           montos: [],
-          alertas: metadata.alertas || [],
-          observaciones: metadata.observaciones || [],
+          alertas: [],
+          observaciones: [],
         },
       })
     } catch (error) {
