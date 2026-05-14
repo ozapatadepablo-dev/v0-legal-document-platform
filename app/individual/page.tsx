@@ -1,13 +1,18 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export default function IndividualPage() {
   const [selectedType, setSelectedType] = useState('property')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const types = [
     { id: 'property', label: 'Dominio Vigente' },
@@ -51,7 +56,10 @@ export default function IndividualPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '40px' }}>
       <button
-        onClick={() => window.location.href = '/'}
+        onClick={() => {
+          console.log('[v0] Navigate home')
+          window.location.href = '/'
+        }}
         style={{ marginBottom: '30px', padding: '8px 16px', backgroundColor: '#0066ff', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
       >
         ← Volver
@@ -69,11 +77,12 @@ export default function IndividualPage() {
         <div style={{ marginBottom: '40px' }}>
           <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Tipo de Análisis</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-            {types.map((t) => (
+            {mounted && types.map((t) => (
               <button
                 key={t.id}
+                type="button"
                 onClick={() => {
-                  console.log('[v0] Setting type to:', t.id)
+                  console.log('[v0] Type selected:', t.id)
                   setSelectedType(t.id)
                 }}
                 style={{
