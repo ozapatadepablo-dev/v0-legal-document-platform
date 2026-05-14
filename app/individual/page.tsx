@@ -107,7 +107,8 @@ export default function IndividualPage() {
             onClick={() => fileInputRef.current?.click()}
             onDrop={(e) => {
               e.preventDefault()
-              handleFile(e.dataTransfer.files[0])
+              const files = Array.from(e.dataTransfer.files)
+              files.forEach(file => handleFile(file))
             }}
             onDragOver={(e) => e.preventDefault()}
             className="p-12 text-center cursor-pointer hover:border-primary/50 transition-all"
@@ -116,7 +117,11 @@ export default function IndividualPage() {
               ref={fileInputRef}
               type="file"
               accept=".pdf"
-              onChange={(e) => handleFile(e.target.files[0])}
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                files.forEach(file => handleFile(file))
+              }}
               className="hidden"
             />
             <div className="flex justify-center mb-4">
@@ -124,7 +129,7 @@ export default function IndividualPage() {
                 <Upload className="h-10 w-10 text-primary" />
               </div>
             </div>
-            <p className="text-xl font-bold text-foreground mb-2">Arrastra tu PDF aquí</p>
+            <p className="text-xl font-bold text-foreground mb-2">Arrastra tus PDF aquí</p>
             <p className="text-muted-foreground">o haz clic para seleccionar</p>
           </Card>
 
