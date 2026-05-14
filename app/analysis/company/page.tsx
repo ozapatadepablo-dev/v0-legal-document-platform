@@ -8,12 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Upload, Building2 } from 'lucide-react'
 
 export default function CompanyAnalysisPage() {
-  const [docType, setDocType] = useState('constitucion')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [uploadedFiles, setUploadedFiles] = useState([])
-  const fileInputRef = useRef(null)
+  const [uploadedFiles, setUploadedFiles] = useState({})
+  const fileInputRefs = useRef({})
 
   const documentTypes = [
     { id: 'constitucion', label: 'Constitución' },
@@ -25,7 +24,7 @@ export default function CompanyAnalysisPage() {
     { id: 'otros', label: 'Otros' },
   ]
 
-  const handleFile = (file) => {
+  const handleFile = (file, docTypeId) => {
     if (!file) return
     if (file.type !== 'application/pdf') {
       setError('Solo se aceptan archivos PDF')
@@ -33,11 +32,25 @@ export default function CompanyAnalysisPage() {
     }
 
     setError(null)
-    setUploadedFiles(prev => [...prev, { file, type: docType, name: file.name }])
+    setUploadedFiles(prev => ({
+      ...prev,
+      [docTypeId]: [...(prev[docTypeId] || []), { file, name: file.name }]
+    }))
+  }
+
+  const handleRemoveFile = (docTypeId, idx) => {
+    setUploadedFiles(prev => ({
+      ...prev,
+      [docTypeId]: prev[docTypeId].filter((_, i) => i !== idx)
+    }))
+  }
+
+  const getTotalFiles = () => {
+    return Object.values(uploadedFiles).reduce((sum, files) => sum + files.length, 0)
   }
 
   const handleAnalyze = async () => {
-    if (uploadedFiles.length === 0) {
+    if (getTotalFiles() === 0) {
       setError('Por favor carga al menos un documento')
       return
     }
@@ -48,8 +61,10 @@ export default function CompanyAnalysisPage() {
 
     try {
       const formData = new FormData()
-      uploadedFiles.forEach(({ file }) => {
-        formData.append('files', file)
+      Object.entries(uploadedFiles).forEach(([docType, files]) => {
+        files.forEach(({ file }) => {
+          formData.append('files', file)
+        })
       })
       formData.append('analysisType', 'sociedades')
 
@@ -93,98 +108,94 @@ export default function CompanyAnalysisPage() {
             </p>
           </div>
 
-          {/* Selector de tipo de documento */}
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold text-foreground">Tipo de Documento</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {documentTypes.map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => setDocType(type.id)}
-                  className={`p-2 rounded-lg border-2 text-sm transition-all ${
-                    docType === type.id
-                      ? 'border-primary bg-primary/10 text-primary font-semibold'
-                      : 'border-border bg-card text-foreground hover:border-primary/50'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
+          {/* Grid de tipos de documentos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {documentTypes.map((docType) => {
+              const files = uploadedFiles[docType.id] || []
+              return (
+                <Card key={docType.id} className="p-4 flex flex-col h-full">
+                  {/* Título */}
+                  <h3 className="font-semibold text-foreground mb-3">{docType.label}</h3>
+
+                  {/* Área de carga */}
+                  <div
+                    onClick={() => fileInputRefs.current[docType.id]?.click()}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      handleFile(e.dataTransfer.files[0], docType.id)
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-all mb-3 flex-1 flex flex-col justify-center"
+                  >
+                    <input
+                      ref={(el) => {
+                        if (el) fileInputRefs.current[docType.id] = el
+                      }}
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => handleFile(e.target.files?.[0], docType.id)}
+                      className="hidden"
+                    />
+                    <Upload className="h-6 w-6 text-primary mx-auto mb-2" />
+                    <p className="text-xs font-medium text-foreground">Agregar</p>
+                  </div>
+
+                  {/* Lista de archivos agregados */}
+                  {files.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                      {files.map((file, idx) => (
+                        <div key={idx} className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveFile(docType.id, idx)}
+                            className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )
+            })}
           </div>
 
+          {/* Resumen y botones */}
           {!result && (
             <>
-              {/* Área de carga */}
-              <Card
-                onClick={() => fileInputRef.current?.click()}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  handleFile(e.dataTransfer.files[0])
-                }}
-                onDragOver={(e) => e.preventDefault()}
-                className="p-12 text-center cursor-pointer hover:border-primary/50 transition-all"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || [])
-                    files.forEach(file => handleFile(file))
-                  }}
-                  className="hidden"
-                />
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-primary/10 rounded-full">
-                    <Upload className="h-10 w-10 text-primary" />
-                  </div>
-                </div>
-                <p className="text-xl font-bold text-foreground mb-2">Arrastra tus PDFs aquí</p>
-                <p className="text-muted-foreground">o haz clic para seleccionar</p>
-              </Card>
-
-              {/* Lista de archivos cargados */}
-              {uploadedFiles.length > 0 && (
-                <Card className="p-4 space-y-3">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold text-foreground">Documentos cargados ({uploadedFiles.length})</h3>
-                    <Button
-                      onClick={() => setUploadedFiles([])}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Limpiar
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {uploadedFiles.map((item, idx) => {
-                      const typeLabel = documentTypes.find(t => t.id === item.type)?.label
-                      return (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">{typeLabel}</p>
-                          </div>
-                          <Button
-                            onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== idx))}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Eliminar
-                          </Button>
-                        </div>
-                      )
-                    })}
-                  </div>
+              {getTotalFiles() > 0 && (
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <p className="text-sm text-foreground font-medium">
+                    Total de documentos agregados: <span className="text-primary font-bold">{getTotalFiles()}</span>
+                  </p>
+                </Card>
+              )}
+              {error && (
+                <Card className="p-4 border-destructive/50 bg-destructive/5">
+                  <p className="text-destructive font-semibold mb-3">{error}</p>
+                  <Button onClick={() => setError(null)} size="sm">Intentar de nuevo</Button>
                 </Card>
               )}
 
-              {/* Botón de análisis */}
+              {loading && (
+                <Card className="p-6 space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-primary font-semibold">Analizando {getTotalFiles()} documento(s)...</p>
+                    <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full animate-pulse w-full"></div>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">Procesando documentos...</p>
+                </Card>
+              )}
+
               <Button
                 onClick={handleAnalyze}
-                disabled={uploadedFiles.length === 0 || loading}
+                disabled={getTotalFiles() === 0 || loading}
                 className="w-full"
                 size="lg"
               >
@@ -215,7 +226,7 @@ export default function CompanyAnalysisPage() {
                   onClick={() => {
                     setResult(null)
                     setError(null)
-                    setUploadedFiles([])
+                    setUploadedFiles({})
                   }}
                   className="flex-1"
                 >
@@ -230,8 +241,3 @@ export default function CompanyAnalysisPage() {
               </div>
             </div>
           )}
-        </div>
-      </main>
-    </div>
-  )
-}
