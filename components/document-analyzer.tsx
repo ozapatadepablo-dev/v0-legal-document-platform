@@ -58,7 +58,10 @@ export function DocumentAnalyzer() {
             <button
               key={t.id}
               type="button"
-              onClick={() => setSelectedType(t.id)}
+              onClick={() => {
+                console.log('[v0] Button clicked:', t.id)
+                setSelectedType(t.id)
+              }}
               className={`p-4 rounded border-2 font-bold transition-all ${
                 selectedType === t.id
                   ? 'border-blue-500 bg-blue-50 text-blue-900'
