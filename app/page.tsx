@@ -56,11 +56,16 @@ export default function Home() {
               </Card>
             </Link>
 
-            {/* Opción 2: Análisis Múltiple */}
-            <Link href="/multiple" className="group">
-              <Card className="p-8 h-full hover:border-accent/50 transition-all cursor-pointer border-accent/30">
+            {/* Opción 2: Informe EETT - Próximamente */}
+            <div className="group">
+              <Card className="p-8 h-full border-accent/30 opacity-60 relative">
+                <div className="absolute top-4 right-4">
+                  <span className="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent">
+                    Próximamente
+                  </span>
+                </div>
                 <div className="space-y-4">
-                  <div className="inline-flex p-3 bg-accent/10 rounded-lg group-hover:bg-accent/20 transition-colors">
+                  <div className="inline-flex p-3 bg-accent/10 rounded-lg">
                     <Layers className="h-8 w-8 text-accent" />
                   </div>
                   
@@ -82,12 +87,12 @@ export default function Home() {
                     </ul>
                   </div>
 
-                  <Button className="w-full mt-6 bg-accent text-accent-foreground hover:bg-accent/90">
-                    Ir a Análisis Múltiple
+                  <Button className="w-full mt-6 bg-accent text-accent-foreground" disabled>
+                    Próximamente
                   </Button>
                 </div>
               </Card>
-            </Link>
+            </div>
           </div>
         </div>
       </main>
