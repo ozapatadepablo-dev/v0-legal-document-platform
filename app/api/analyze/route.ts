@@ -50,7 +50,7 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
       : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno, extrayendo toda la información según el formato JSON requerido.`
 
     const result = await generateText({
-      model: 'google/gemini-2.5-flash-preview-05-20',
+      model: 'google/gemini-3-flash',
       messages: [
         {
           role: 'user',
