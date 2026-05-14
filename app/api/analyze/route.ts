@@ -51,18 +51,18 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
 
     const result = await generateText({
       model: 'google/gemini-3-flash',
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: systemPrompt + '\n\n' + userPrompt,
+              text: userPrompt,
             },
             {
-              type: 'file',
-              data: base64Data,
-              mimeType: 'application/pdf',
+              type: 'image',
+              image: `data:application/pdf;base64,${base64Data}`,
             },
           ],
         },
