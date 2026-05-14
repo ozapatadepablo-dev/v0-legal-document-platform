@@ -24,35 +24,25 @@ export async function POST(req: Request) {
 
     const systemPrompt = `${specificPrompt}
 
-INSTRUCCIONES GENERALES:
-1. Analiza el documento completo y extrae TODA la información relevante
-2. Responde en formato JSON válido
-3. En el campo "informe" genera un informe completo y formateado según el tipo de análisis
-4. Si detectas información faltante o problemas, agrégalos en "alertas"
-5. Usa el formato de fecha chileno (DD/MM/YYYY)
-6. Los RUTs deben estar en formato XX.XXX.XXX-X
-7. El resumen debe ser conciso (máximo 3 párrafos)
+INSTRUCCIONES DE SALIDA:
+- Responde en español chileno legal
+- Mantén exactamente la estructura y formato solicitado en el análisis
+- Si información falta, indica "No consta"
+- No inventes datos
+- Sé exhaustivo en la extracción de información
 
-IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un JSON válido con esta estructura:
+Después del informe, agrega esta sección JSON con datos extraídos:
+
+---JSON-METADATA---
 {
-  "analysisType": "tipo de análisis",
-  "documentType": "tipo de documento",
-  "summary": "resumen del documento",
-  "informe": "informe completo formateado",
-  "confidence": 0.95,
-  "extractedData": {
-    "tipoDocumento": "string",
-    "partes": [{"rol": "string", "nombre": "string", "rut": "string"}],
-    "clausulas": [{"tipo": "string", "descripcion": "string"}],
-    "montos": [{"concepto": "string", "monto": "string"}],
-    "alertas": [{"tipo": "string", "mensaje": "string"}],
-    "observaciones": ["string"]
-  }
-}`
+  "alertas": ["lista de alertas detectadas"],
+  "observaciones": ["observaciones adicionales"]
+}
+---FIN-JSON---`
 
     const userPrompt = analysisType === 'auto'
-      ? `Analiza el siguiente documento legal chileno, identifica su tipo y extrae toda la información relevante según el formato JSON requerido.`
-      : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno, extrayendo toda la información según el formato JSON requerido.`
+      ? `Analiza el siguiente documento legal chileno según las instrucciones proporcionadas en el sistema. Genera un informe completo.`
+      : `Realiza un análisis de tipo "${analysisType}" sobre el siguiente documento legal chileno según las instrucciones proporcionadas. Genera un informe completo y detallado.`
 
     const result = await generateText({
       model: google('gemini-2.5-flash'),
@@ -78,26 +68,43 @@ IMPORTANTE: Responde siempre en español chileno legal. La respuesta DEBE ser un
     const responseText = result.text
 
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const output = JSON.parse(jsonMatch[0])
-        return Response.json(output)
-      }
-      throw new Error('No JSON found')
-    } catch {
+      const jsonMatch = responseText.match(/---JSON-METADATA---([\s\S]*?)---FIN-JSON---/)
+      const metadata = jsonMatch ? JSON.parse(jsonMatch[1]) : { alertas: [], observaciones: [] }
+      
+      // Extraer el informe (todo antes del JSON)
+      const informeText = jsonMatch 
+        ? responseText.substring(0, responseText.indexOf('---JSON-METADATA---')).trim()
+        : responseText
+
       return Response.json({
         analysisType,
-        documentType: 'Documento Legal',
-        summary: responseText.substring(0, 500),
-        informe: responseText,
-        confidence: 0.7,
+        documentType: `Análisis de ${analysisType}`,
+        summary: informeText.substring(0, 300),
+        informe: informeText,
+        confidence: 0.9,
         extractedData: {
-          tipoDocumento: 'Documento Legal',
+          tipoDocumento: `Análisis de ${analysisType}`,
+          partes: [],
+          clausulas: [],
+          montos: [],
+          alertas: metadata.alertas || [],
+          observaciones: metadata.observaciones || [],
+        },
+      })
+    } catch (error) {
+      return Response.json({
+        analysisType,
+        documentType: `Análisis de ${analysisType}`,
+        summary: responseText.substring(0, 300),
+        informe: responseText,
+        confidence: 0.85,
+        extractedData: {
+          tipoDocumento: `Análisis de ${analysisType}`,
           partes: [],
           clausulas: [],
           montos: [],
           alertas: [],
-          observaciones: ['Análisis completado'],
+          observaciones: ['Informe completado'],
         },
       })
     }
